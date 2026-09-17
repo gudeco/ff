@@ -1,0 +1,707 @@
+// Oscillators and generated noise only: no recorded instruments or audio files.
+export function synthNote(engine,event,time){
+ const [offset,kind,pitch,length,velocity,pan,lane]=event,c=engine.ctx;
+ const squareDouble=event[9]==='square-doubled';
+ const rhodes=kind==='organ'&&((lane>=1400&&lane<=1407)||lane===1456||lane===1486||lane===1458||lane===1481||lane===1482||lane===1487||lane===1488||lane===1489||lane===1491||lane===1510);
+ if([...engine.voices].filter(v=>v.synth).length>=(kind==='bassline'?36:30))return;
+ const drum=['kick','snare','hat','air'].includes(kind),duration=Math.max(.015,Math.min(length||.2,kind==='shepard'?8:kind==='lahopterix'?8:kind==='brass'?1.5:kind==='harp'?.8:kind==='bell'?.65:kind==='ride'?.65:kind==='lead'?8:kind==='polysynth'?6:kind==='cymbal'?.7:kind==='tom'?.28:kind==='organ'?(lane===1458||lane===1482||lane===1488||lane===1491||((lane===1456||lane===1486)&&event[7]===1)?12:5.2):kind==='pad'?1.5:kind==='metal'?.65:kind==='bassline'?(lane===1507?1.2:lane===1201?1.8:lane===1000?1.2:.42):kind==='bass'?.28:kind==='kick'?.32:.18));
+ const gain=c.createGain(),filter=c.createBiquadFilter(),panner=c.createStereoPanner();
+ const freq=Math.max(28,Math.min(1000,(kind==='kick'?55:kind==='bassline'?55:kind==='bass'?65:kind==='metal'?170:110)*2**((Array.isArray(pitch)?pitch[0]:pitch)/12)));
+ filter.type=kind==='snare'||kind==='hat'||kind==='cymbal'?'highpass':'lowpass';filter.frequency.value=kind==='cymbal'?1900:kind==='tom'?1100:kind==='hat'?3000:kind==='snare'?700:kind==='bassline'?750:kind==='pad'?900:kind==='metal'?2200:kind==='kick'?1000:1800;
+ panner.pan.value=kind==='kick'||kind==='bass'||kind==='bassline'?0:Math.max(-.65,Math.min(.65,pan+(kind==='pad'?.25*Math.sin(lane*2.4):kind==='hat'?.3:kind==='metal'?-.22:0)));
+ const level=({shepard:.010,lahopterix:.065,brass:.085,harp:.028,kick:.36,snare:.12,hat:.04,tom:.19,cymbal:.065,ride:.065,bell:.095,metal:.10,bass:.12,bassline:.34,organ:.065,polysynth:.12,lead:.115,pad:.055,air:.04}[kind]||.06)*Math.min(1.2,velocity)*(squareDouble&&kind==='bassline'?.90:1)*(kind==='lead'?[1,1.8,1.45,1.9][event[7]??0]:1);
+ gain.gain.setValueAtTime(0,time);
+ if(kind==='shepard'){
+  gain.gain.linearRampToValueAtTime(level,time+duration*.30);
+  gain.gain.setValueAtTime(level*.8,time+duration*.65);
+  gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+ }else if(kind==='lahopterix'){
+  gain.gain.linearRampToValueAtTime(level,time+.43);
+  gain.gain.setValueAtTime(level*.7,time+duration-.35);
+  gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+ }else if(kind==='lead'){
+  gain.gain.linearRampToValueAtTime(level,time+duration*.26);
+  gain.gain.setValueAtTime(level,time+duration*.68);
+  gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+
+ }else if(kind==='brass'){
+  gain.gain.linearRampToValueAtTime(level,time+.018);
+  gain.gain.exponentialRampToValueAtTime(level*.55,time+duration*.4);
+  gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+ }else if(kind==='polysynth'){
+  gain.gain.linearRampToValueAtTime(level*.12,time+duration*.16);
+  gain.gain.linearRampToValueAtTime(level,time+duration*.48);
+  gain.gain.linearRampToValueAtTime(level*.82,time+duration*.72);
+  gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+ }else if(rhodes&&(lane===1488||lane===1491)){
+  gain.gain.linearRampToValueAtTime(level,time+.22);
+  gain.gain.setValueAtTime(level*.85,time+duration*.2);
+  gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+ }else if(rhodes&&(lane===1458||lane===1482)){
+  gain.gain.linearRampToValueAtTime(level,time+.6);
+  gain.gain.setValueAtTime(level,time+duration-.25);
+  gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+ }else if(rhodes&&(lane===1456||lane===1486)&&event[7]===1){
+  gain.gain.linearRampToValueAtTime(level,time+.025);
+  gain.gain.setValueAtTime(level*.78,time+duration-.08);
+  gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+ }else if(rhodes){
+  gain.gain.linearRampToValueAtTime(level,time+Math.min(.025,duration*.15));
+  gain.gain.setValueAtTime(level*.78,time+duration*.75);
+  gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+ }else if(kind==='organ'){
+  // A slow bloom, held crest and short release make each harmony swell into view.
+  gain.gain.linearRampToValueAtTime(level*.16,time+duration*.20);
+  gain.gain.linearRampToValueAtTime(level,time+duration*.58);
+  gain.gain.setValueAtTime(level*.92,time+duration*.82);
+  gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+ }else{
+  gain.gain.linearRampToValueAtTime(level,time+Math.min(duration/4,kind==='pad'?.04:.003));
+  if(kind==='bassline')gain.gain.setValueAtTime(level*.8,time+duration*.65);
+  gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+ }
+ filter.connect(gain);gain.connect(panner);panner.connect(kind==='bassline'||kind==='organ'||kind==='polysynth'?(engine.bassDuck||engine.ambientDuck):kind==='pad'?engine.ambientDuck:(engine.musicInput||engine.music));
+ const nodes=[],sources=[];
+ const leadVariant=event[7]??0;
+ let oscillatorBus=filter;
+ if(kind==='lead'&&(leadVariant===1||leadVariant===3)){
+  const ring=c.createGain(),mod=c.createOscillator();
+  ring.gain.value=0;mod.type='sine';mod.frequency.setValueAtTime(leadVariant===1?37:83,time);
+  mod.connect(ring.gain);ring.connect(filter);oscillatorBus=ring;
+  sources.push(mod);nodes.push(ring);
+ }
+ let reverbGain=null;
+ const tail=kind==='lead'||kind==='shepard'?2.4:0;
+ if(kind==='lead'||kind==='shepard'){
+  // Generated stereo impulse: no samples, independent of the percussion echo.
+  if(!engine.leadImpulse){
+   const buffer=c.createBuffer(2,Math.ceil(c.sampleRate*tail),c.sampleRate);let seed=82731;
+   for(let ch=0;ch<2;ch++){
+    const data=buffer.getChannelData(ch);let smooth=0;
+    for(let i=0;i<data.length;i++){
+     seed=(Math.imul(seed,1664525)+1013904223)>>>0;
+     smooth=.72*smooth+.28*(seed/2147483648-1);
+     data[i]=i<c.sampleRate*.027?0:smooth*(1-i/data.length)**3;
+    }
+   }
+   engine.leadImpulse=buffer;
+  }
+  const reverb=c.createConvolver();reverb.buffer=engine.leadImpulse;
+  reverbGain=c.createGain();reverbGain.gain.value=kind==='shepard'?1.1:.32;
+  panner.connect(reverb);reverb.connect(reverbGain);reverbGain.connect(engine.musicInput||engine.music);
+  nodes.push(reverb,reverbGain);
+ }
+ function osc(type,hz,amp=1){const o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(hz,time);g.gain.value=amp;o.connect(g);g.connect(oscillatorBus);sources.push(o);nodes.push(g);return o;}
+ if(kind==='kick'){const o=osc('sine',freq*2.2);o.frequency.exponentialRampToValueAtTime(freq,time+.035);o.frequency.exponentialRampToValueAtTime(freq*.86,time+duration);engine.duck(engine.ambientDuck,time,.42,.12);if(engine.bassDuck)engine.duck(engine.bassDuck,time,squareDouble?.82:.75,squareDouble?.032:.045);}
+ else if(kind==='tom'){const o=osc('sine',120*2**(pitch/12));o.frequency.exponentialRampToValueAtTime(82*2**(pitch/12),time+duration);osc('triangle',165*2**(pitch/12),.14);}
+ else if(kind==='snare'||kind==='hat'||kind==='air'||kind==='cymbal'){const n=c.createBufferSource();n.buffer=engine.noise;n.loop=true;n.connect(filter);sources.push(n);if(kind==='snare')osc('triangle',155*2**(pitch/12),.28);}
+ else if(kind==='shepard'){
+  // Octave-spaced tones descend together; a fixed spectral bell crossfades registers.
+  filter.frequency.value=1600;filter.Q.value=.2;
+  for(let octave=-3;octave<=6;octave++){
+   const o=osc('sine',220*2**octave,0),amplitude=nodes.at(-1).gain;
+   for(let i=0;i<=64;i++){
+    const u=i/64,hz=220*2**(octave-2*u),weight=.38*Math.exp(-.5*(Math.log2(hz/660)/1.2)**2);
+    if(i===0){o.frequency.setValueAtTime(hz,time);amplitude.setValueAtTime(weight,time);}
+    else{o.frequency.exponentialRampToValueAtTime(hz,time+u*duration);amplitude.linearRampToValueAtTime(weight,time+u*duration);}
+   }
+  }
+ }
+ else if(kind==='lahopterix'){
+  // Lahopterix hissata reference: two sines, two saws, soft attack, low-pass and delay.
+  const base=110*2**((pitch+.055)/12);
+  for(const [wave,amp]of [['sine',.151],['sawtooth',.023],['sine',.512],['sawtooth',.626]]){
+   const o=osc(wave,lane===1511?base*2**(-2/12):base,amp*.65);
+   if(lane===1511)o.frequency.exponentialRampToValueAtTime(base,time+Math.min(.65,duration*.3));
+   else if(lane===1483){o.frequency.exponentialRampToValueAtTime(base*2**(1/12),time+duration*.5);o.frequency.exponentialRampToValueAtTime(base,time+duration*.9);}
+   else o.frequency.exponentialRampToValueAtTime(base*2**(-2/12),time+duration*.9);
+  }
+  filter.frequency.value=608;filter.Q.value=.4;
+  const delay=c.createDelay(1),feedback=c.createGain(),tone=c.createBiquadFilter(),wet=c.createGain();
+  delay.delayTime.value=.445;feedback.gain.value=.55;tone.type='lowpass';tone.frequency.value=1420;wet.gain.value=.4;
+  filter.connect(delay);delay.connect(tone);tone.connect(feedback);feedback.connect(delay);tone.connect(wet);wet.connect(gain);
+  nodes.push(delay,feedback,tone,wet);
+ }
+ else if(kind==='brass'){
+  const chord=Array.isArray(pitch)?pitch:[pitch];
+  for(const [i,n]of chord.entries()){
+   const hz=110*2**(n/12),balance=1/Math.sqrt(chord.length);
+   osc('sawtooth',hz*2**((i%2?3:-3)/1200),.48*balance);osc('triangle',hz,.4*balance);
+  }
+  filter.Q.value=.65;filter.frequency.setValueAtTime(750,time);filter.frequency.linearRampToValueAtTime(2100,time+.025);filter.frequency.exponentialRampToValueAtTime(650,time+duration);
+ }
+ else if(kind==='harp'){
+  const hz=110*2**(pitch/12);
+  osc('sine',hz,.8);osc('triangle',hz,.15);osc('sine',hz*2,.09);
+  filter.Q.value=.2;filter.frequency.setValueAtTime(3800,time);filter.frequency.exponentialRampToValueAtTime(1400,time+duration);
+ }
+ else if(kind==='bell'){
+  // Rounded mallet rather than a vowel-like organ/square blend; no moving resonance.
+  filter.frequency.value=3000;filter.Q.value=.25;
+  osc('sine',freq,.85);osc('triangle',freq,.12);
+  osc('sine',freq*2.76,.10);const partial=nodes.at(-1);
+  partial.gain.setValueAtTime(.10,time);partial.gain.exponentialRampToValueAtTime(.0001,time+duration*.38);
+ }
+ else if(kind==='ride'){
+  // A warm metallic stick ping with a restrained noise wash.
+  filter.frequency.value=3800;filter.Q.value=.5;
+  osc('sine',1720,.52);osc('sine',2387,.27);osc('sine',3211,.13);
+  const n=c.createBufferSource(),ng=c.createGain();n.buffer=engine.noise;n.loop=true;
+  ng.gain.value=.13;n.connect(ng);ng.connect(filter);sources.push(n);nodes.push(ng);
+ }
+ else if(kind==='metal'){osc('sine',freq,.65);osc('sine',freq*1.413,.26);osc('sine',freq*2.071,.15);}
+ else if(kind==='bassline'&&(lane===1200||lane===1201||lane===1202)){osc('sawtooth',freq,.34);osc('triangle',freq,.46);osc('sine',freq,.30);filter.Q.value=lane===1202?2.2:1.1;
+  filter.frequency.setValueAtTime(lane===1202?2400:1050,time);
+  if(lane===1202)filter.frequency.exponentialRampToValueAtTime(480,time+Math.min(.065,duration*.4));
+  filter.frequency.exponentialRampToValueAtTime(240,time+duration);}
+ else if(kind==='bassline'){
+  osc('triangle',freq,.65);osc('sine',freq,.32);osc('sawtooth',freq*2,.18);
+  // Give the doubled pair a brief clear onset while leaving the low-pass dip intact.
+  filter.frequency.setValueAtTime(squareDouble?1600:1300,time);
+  if(squareDouble)filter.frequency.setValueAtTime(1600,time+Math.min(.012,duration*.2));
+  filter.frequency.exponentialRampToValueAtTime(260,time+duration);
+ }
+ else if(kind==='lead'){
+  for(const [type,cents,amp]of [['sawtooth',-5,.30],['sawtooth',5,.24],['triangle',0,.50]]){
+   const o=osc(type,freq*2**((cents-20)/1200),amp);
+   // Damped pitch hunting through the swell, then a stable, softly detuned sustain.
+   const settling=Math.min(1.8,duration*.5);
+   for(const [position,drift]of [[.12,25],[.29,-18],[.46,13],[.64,-8],[.81,4],[1,0]])
+    o.frequency.linearRampToValueAtTime(freq*2**((cents+drift)/1200),time+settling*position);
+   if(leadVariant===2){
+    o.frequency.setValueAtTime(freq*2**(cents/1200),time+duration*.68);
+    o.frequency.exponentialRampToValueAtTime(freq*2**((cents-700)/1200),time+duration);
+   }else o.frequency.setValueAtTime(freq*2**(cents/1200),time+duration);
+  }
+  filter.Q.value=.65;filter.frequency.setValueAtTime(800,time);
+  filter.frequency.linearRampToValueAtTime(2350,time+duration*.35);
+  filter.frequency.linearRampToValueAtTime(900,time+duration);
+  if(leadVariant===2){
+   filter.Q.value=1.5;filter.frequency.cancelScheduledValues(time);
+   filter.frequency.setValueAtTime(650,time);
+   filter.frequency.exponentialRampToValueAtTime(2800,time+duration*.45);
+   filter.frequency.exponentialRampToValueAtTime(350,time+duration);
+  }else if(leadVariant===3){
+   filter.Q.value=2;filter.frequency.cancelScheduledValues(time);
+   filter.frequency.setValueAtTime(650,time);
+   for(let i=1;i<=12;i++)filter.frequency.exponentialRampToValueAtTime(i%2?2100:700,time+duration*i/12);
+  }
+  panner.pan.setValueAtTime(pan-.08,time);panner.pan.linearRampToValueAtTime(pan+.08,time+duration);
+ }
+ else if(kind==='polysynth'){
+  const chord=Array.isArray(pitch)?pitch:[pitch],balance=1/Math.sqrt(chord.length);
+  for(const [i,note]of chord.entries()){
+   const hz=110*2**(note/12);
+   for(const side of [-1,1]){
+    const o=osc('sawtooth',hz*2**(side*(4+i*.6)/1200),.34*balance);
+    // Slow, opposing pitch drift stays within a few cents of each chord tone.
+    o.frequency.linearRampToValueAtTime(hz*2**(side*8/1200),time+duration*.5);
+    o.frequency.linearRampToValueAtTime(hz*2**(side*3/1200),time+duration);
+   }
+   osc('triangle',hz,.36*balance);
+  }
+  filter.Q.value=.75;
+  filter.frequency.setValueAtTime(360,time);
+  filter.frequency.exponentialRampToValueAtTime(1550,time+duration*.55);
+  filter.frequency.exponentialRampToValueAtTime(550,time+duration);
+  panner.pan.setValueAtTime(pan-.12,time);
+  panner.pan.linearRampToValueAtTime(pan+.12,time+duration);
+ }
+ else if(rhodes){
+  // Adapted from the supplied QUAD-OSC Rhodesia fermis preset.
+  const tones=Array.isArray(pitch)?pitch:[pitch],balance=.65/Math.sqrt(tones.length);
+  const layers=[['sawtooth',-12,-.05,.626,.02],['sawtooth',-2,.05,.24,.336],['triangle',21,-.02,.597,.06],['sine',5,.02,.667,.1]];
+  for(const [toneIndex,note] of tones.entries())for(const [wave,transpose,detune,amp,attack]of layers){
+   const hz=110*2**((note+transpose+detune)/12),o=osc(wave,hz,amp*balance),g=nodes.at(-1);
+   g.gain.setValueAtTime(0,time);
+   const entry=lane===1458?toneIndex*.15:0;
+   g.gain.setValueAtTime(0,time+entry);g.gain.linearRampToValueAtTime(amp*balance,time+entry+(lane===1458?.45:Math.min(attack,duration*.4)));
+   if((lane===1456||lane===1486)&&event[7]===1){
+    for(const [fraction,cents]of [[0,-5],[.28,7],[.62,-4],[1,1]])o.frequency.linearRampToValueAtTime(hz*2**(cents/1200),time+duration*fraction);
+   }
+   if(lane===1488||lane===1491){
+    o.frequency.setValueAtTime(hz,time+duration*.15);
+    o.frequency.exponentialRampToValueAtTime(hz*2**(-(2+toneIndex*.06)/12),time+duration);
+   }
+   if(lane===1407){o.frequency.setValueAtTime(hz,time+duration*.15);o.frequency.exponentialRampToValueAtTime(hz*2,time+duration*.88);}
+  }
+  const upperCounterline=[1487,1488,1489,1491].includes(lane);
+  filter.Q.value=.1;filter.frequency.setValueAtTime(upperCounterline?1200:556,time);
+  filter.frequency.linearRampToValueAtTime(upperCounterline?1550:620,time+duration*.5);
+  filter.frequency.linearRampToValueAtTime(upperCounterline?1000:510,time+duration);
+ }
+ else if(kind==='organ'){
+  // One voice owns the whole chord: admission, attack and release stay together.
+  for(const note of (Array.isArray(pitch)?pitch:[pitch])){
+   const fundamental=110*2**(note/12),balance=Math.sqrt(3/(Array.isArray(pitch)?pitch.length:3));
+   for(const [harmonic,amp]of [[1,.65],[2,.23],[3,.10],[4,.06]]){
+    const o=osc('sine',fundamental*harmonic,amp*balance);
+    if(lane===1407){
+     o.frequency.setValueAtTime(fundamental*harmonic,time+duration*.15);
+     o.frequency.exponentialRampToValueAtTime(fundamental*harmonic*2,time+duration*.88);
+    }
+   }
+  }
+  filter.frequency.setValueAtTime(650,time);filter.frequency.linearRampToValueAtTime(1800,time+duration*.7);
+ }
+ else if(kind==='bass'){osc('triangle',freq,.8);osc('sine',freq/2,.22);}
+ else {osc('triangle',freq,.55);osc('sine',freq*1.006,.35);}
+ let ended=0,stopped=false;const voice={music:true,synth:true,stop:at=>{if(stopped)return;stopped=true;gain.gain.cancelScheduledValues(at);gain.gain.setTargetAtTime(.0001,at,.006);if(reverbGain){reverbGain.gain.cancelScheduledValues(at);reverbGain.gain.setTargetAtTime(.0001,at,.006);}for(const s of sources)s.stop(at+.035);}};
+ engine.voices.add(voice);
+ for(const s of sources){s.onended=()=>{s.disconnect();if(++ended===sources.length){for(const n of nodes)n.disconnect();filter.disconnect();gain.disconnect();panner.disconnect();engine.voices.delete(voice);}};s.start(time);s.stop(time+duration+tail+.01);}
+}
+export function scheduleSynth(engine,score){
+ const c=engine.ctx;
+ if(!engine.synthClock||engine.synthClock.theme!==engine.theme)engine.synthClock={theme:engine.theme,origin:c.currentTime+.025+(score.pickupDuration||0),pickupIndex:0,index:0,cycle:0,wetLevel:engine.echo?.wet.gain.value??0};
+ const clock=engine.synthClock;
+ // A one-time anacrusis precedes bar one; subsequent pickups live inside the loop.
+ while(clock.pickupIndex<(score.pickupEvents?.length||0)){
+  const e=score.pickupEvents[clock.pickupIndex],t=clock.origin+e[0];
+  if(t>c.currentTime+.1)break;
+  if(t>=c.currentTime-.02)synthNote(engine,e,Math.max(c.currentTime,t));
+  clock.pickupIndex++;
+ }
+ if(score.rests&&clock.restCycle!==clock.cycle&&engine.musicInput){
+  clock.restCycle=clock.cycle;const base=clock.origin+clock.cycle*score.duration;
+  engine.echo?.wet.gain.setValueAtTime(clock.wetLevel,base);
+  engine.echo?.wet.gain.setValueAtTime(clock.wetLevel,base+score.duration);
+  for(const [start,end]of score.rests){
+   engine.musicInput.gain.setValueAtTime(0,base+start);
+   engine.musicInput.gain.setValueAtTime(1,base+end);
+   // Stop the echo return too, so the shared rests remain clean.
+   engine.echo?.wet.gain.setValueAtTime(0,base+start);
+  }
+ }
+
+ if(c.currentTime-clock.origin-clock.cycle*score.duration>score.duration){clock.origin=c.currentTime+.025;clock.index=0;clock.cycle=0;}
+ let guard=0;
+ while(score.events.length&&guard++<2048){const e=score.events[clock.index],t=clock.origin+clock.cycle*score.duration+e[0];if(t>c.currentTime+.1)break;
+ if(t>=c.currentTime-.02)synthNote(engine,engine.theme==='hospital'&&e[1]==='lead'?[...e.slice(0,7),e[7]??clock.cycle%4]:e,Math.max(c.currentTime,t));
+ if(++clock.index===score.events.length){clock.index=0;clock.cycle++;}
+ }
+}
+
+// Square: four-bar A-minor pentatonic funk phrase, with ghost pickups.
+// Street uses the dedicated A-A-B-A-A-C arrangement below.
+// New notes fit existing activity windows, keeping playlist cutouts open.
+export function withStageBass(score,theme){
+ if(theme==='street')return arrangeStreet(score);
+ const bpm=theme==='plaza'?174:188,step=60/bpm/4,bars=Math.round(score.duration/(step*16));
+ const squarePhrase=[
+  [[0,0,1.65,.90],[3,12,.55,.46],[6,7,.85,.73],[7.5,10,.45,.45],[10,0,1.35,.86],[13,3,.80,.70],[15,7,.65,.68]],
+  [[0,0,1.30,.86],[2.5,0,.45,.43],[5,3,.85,.72],[7,5,.70,.68],[10,7,1.25,.81],[13,12,.65,.75],[15,10,.55,.58]],
+  [[0,0,1.65,.90],[3,12,.55,.46],[6,7,.85,.73],[7.5,10,.45,.45],[10,0,1.35,.86],[13,3,.80,.70],[15,5,.65,.68]],
+  [[0,7,1.20,.82],[3,10,.70,.68],[6,12,1.10,.86],[9,7,.65,.69],[11,5,.60,.65],[13,3,.65,.67],[15,0,.60,.79]]
+ ];
+ const squareB=[
+  [[0,12,7,.82],[8,10,3.5,.76],[12,7,3.5,.74]],
+  [[0,10,6.5,.80],[8,7,3.5,.74],[12,5,3.5,.72]],
+  [[0,7,6.5,.79],[8,5,3.5,.74],[12,3,3.5,.72]],
+  [[0,5,5.5,.77],[6,3,3.5,.73],[10,0,5,.86]]
+ ];
+ const streetMotif=[[0,-2,1.5],[3,-2,1],[6,10,1.2],[8,-2,1.8],[11,-1,1],[14,-2,1.2]];
+ const added=[];
+ const windows=[];
+ for(const [start,end] of (score.activeWindows||score.events.map(e=>[e[0],e[0]+e[3]]))){const last=windows.at(-1);if(last&&start<=last[1]+.00001)last[1]=Math.max(last[1],end);else windows.push([start,end]);}
+
+ for(let bar=0;bar<Math.min(bars,24);bar++)for(const [slot,pitch,len,velocity]of (theme==='plaza'?(bar%12>=8?squareB[bar%12-8]:squarePhrase[bar%4]):streetMotif)){
+  if(theme!=='plaza'&&bar%4===3&&slot>=14)continue;
+  const time=(bar*16+slot)*step;
+  const active=score.events.filter(e=>e[0]<=time+.00001&&e[0]+e[3]>time);
+  if(!active.length)continue;
+  const isB=theme==='plaza'&&bar%12>=8;
+  const end=isB?windows.find(w=>w[0]<=time+.00001&&w[1]>time)[1]:Math.max(...active.map(e=>e[0]+e[3]));
+  const duration=Math.min(len*step,end-time,score.duration-time);
+  if(duration<.025)continue;
+  added.push([time,'bassline',pitch+(theme!=='plaza'&&bar%2&&slot===8?-7:0),duration,velocity??(slot===0?.85:.67),0,isB?1000:999]);
+ }
+ // C: A-G-A, G-F-G, F-E-F ... descending, with common band rests.
+ const cStart=24*16*step,bursts=[],cNotes=[];
+ const figures=[[[12,10,12],[10,8,10]],[[8,7,8],[7,5,7]],[[5,3,5],[3,2,3]],[[2,0,2],[0,-2,0]]];
+ for(let bar=0;bar<4;bar++)for(let figure=0;figure<2;figure++){
+  const start=cStart+(bar*16+figure*8)*step;bursts.push([start,start+2.85*step]);
+  figures[bar][figure].forEach((pitch,i)=>cNotes.push([start+i*step,'bassline',pitch,.82*step,i===0?.85:.71,0,1000]));
+ }
+ const accompaniment=score.events.flatMap(original=>{
+  const e=[...original];
+  if(e[0]<cStart){e[3]=Math.min(e[3],cStart-e[0]);return [e];}
+  const burst=bursts.find(w=>e[0]>=w[0]-.00001&&e[0]<w[1]);
+  if(!burst)return [];e[3]=Math.min(e[3],burst[1]-e[0]);return e[3]>.01?[e]:[];
+ });
+ // Explicit drum answers make each short bass figure a shared stop/start gesture.
+ for(const [start] of bursts){cNotes.push([start,'kick',0,1.1*step,.7,0,1300],[start+2*step,'snare',-2,.8*step,.55,0,1301]);}
+ // Filter after bass generation so the original activity windows and phrasing stay intact.
+ const first=[...accompaniment,...added,...cNotes].filter(e=>e[1]!=='pad'&&!(e[1]==='metal'&&e[6]===44)).sort((a,b)=>a[0]-b[0]),length=score.duration;
+ const rests=bursts.map((w,i)=>[w[1],bursts[i+1]?.[0]??length]);
+ const repeat=first.map(e=>{
+  const repeated=[e[0]+length,...e.slice(1)];
+  if(e[1]==='bassline'||e[1]==='kick')repeated[9]='square-doubled';
+  return repeated;
+ });
+ // Preserve the bass patch, envelope and velocity; add only a perfect fifth.
+ const fifths=repeat.filter(e=>e[1]==='bassline').map(e=>{
+  const double=[...e];double[2]+=7;double[8]='square-fifth';return double;
+ });
+ const form=['A','A','B','A','A','B','C'];
+ return {...score,duration:length*2,form:[...form,...form.map(p=>p+' fifths')],sectionBars:4,rests:[...rests,...rests.map(([a,b])=>[a+length,b+length])],events:[...first,...repeat,...fifths].sort((a,b)=>a[0]-b[0])};
+}
+
+// Seven four-bar sections, ending with a distinct organ-led D turnaround.
+export function streetMicroPitch(pitch){
+ const ratios=[1,16/15,9/8,6/5,5/4,4/3,7/5,3/2,8/5,5/3,7/4,15/8];
+ const degree=pitch+2,octave=Math.floor(degree/12),pc=((degree%12)+12)%12;
+ return -2+12*octave+12*Math.log2(ratios[pc]);
+}
+export function arrangeStreet(source){
+ const step=60/188/4,barTime=step*16,sectionTime=barTime*4;
+ const form=['A',"A'",'B','A',"A'",'C','D','E','F'],events=[],activeWindows=[];
+ const motifs={
+  A:[[[0,-2,1.7,.87],[3,-2,.65,.48],[6,10,.85,.75],[8,-2,1.6,.84],[11,-1,.7,.65],[14,1,.8,.70]],
+     [[0,-2,1.6,.87],[3,-2,.6,.48],[6,5,.9,.72],[9,1,1,.74],[12,-1,.7,.60],[15,-2,.65,.78]]],
+  B:[[[0,-2,.65,.76],[1,1,.6,.73],[2,4,.6,.77],[3,5,.6,.8],[4,10,.9,.86],[10,-2,.6,.72],[11,1,.6,.75],[12,4,.6,.78],[13,10,.8,.85]],
+     [[0,-2,.65,.76],[1,-1,.6,.72],[2,1,.6,.76],[3,5,.6,.81],[4,10,1,.87],[10,1,.6,.72],[11,4,.6,.76],[12,5,.6,.8],[13,10,.8,.85]]],
+  C:[[[0,-2,1,.88],[2,1,.7,.67],[5,4,.75,.70],[7,-2,1,.83],[10,8,.7,.72],[12,4,.6,.65],[14,-1,.65,.66]],
+     [[0,-2,1.2,.88],[3,1,.7,.66],[6,4,.7,.74],[8,-2,1.2,.86],[11,-1,.65,.65],[14,-2,.9,.8]]]
+ };
+ for(let section=0;section<form.length;section++){
+  const prime=form[section]==="A'",part=prime?'A':form[section],dest=section*sectionTime;
+  if(part==='F'){
+   activeWindows.push([dest,dest+sectionTime]);
+   const put=(bar,slot,kind,pitch,len,vel,lane)=>events.push([dest+(bar*16+slot)*step,kind,pitch,len*step,vel,0,lane]);
+   for(let bar=0;bar<4;bar++){
+    for(let slot=0;slot<16;slot+=2)put(bar,slot,'bassline',-14,1.5,slot%4===0?.82:.66,1470);
+    if(bar<2){
+     for(const slot of [0,2,8,10])put(bar,slot,'kick',-2,1.3,.82,1471);
+     for(const slot of [4,12])put(bar,slot,'snare',-2,1.2,.88,1471);
+     for(let slot=0;slot<16;slot+=2)put(bar,slot,'hat',-4,.5,.43,1471);
+    }else{
+     // Twelve strokes per bar: twice the previous fill speed, at the same tempo.
+     if(bar===3){
+      // Eight equal snare sixteenths occupy beats three and four before A.
+      for(let i=0;i<8;i++)put(bar,8+i,'snare',-2,.7,.65,1472);
+     }else for(let i=0;i<12;i++)put(bar,i*16/12,i%3===0?'snare':'tom',-(i%6),.625,.72+(i%6)*.025,1472);
+     put(bar,0,'kick',-2,1.4,.80,1471);
+    }
+   }
+   continue;
+  }
+  if(part==='E'){
+   // Screenshot melody: each pair repeats three times; Db5 holds from bar four through F.
+   const lines=[[40,39,40,39,40,39,37,35],[37,35,37,35,34,32,34,32],[34,32,30,29,30,29,30,29]];
+   activeWindows.push([dest,dest+sectionTime]);
+   const put=(bar,slot,kind,pitch,len,vel,pan=0,lane=1450)=>events.push([dest+(bar*16+slot)*step,kind,pitch,len*step,vel,pan,lane]);
+   for(let bar=0;bar<4;bar++){
+    // Rhodesia sixteenth-note riff with a quieter parallel perfect fifth.
+    if(bar<3)for(let slot=0;slot<16;slot++){
+     const pair=Math.floor(slot/4)*2,pitch=streetMicroPitch(lines[bar][pair+slot%2])-12;
+     const velocity=(slot%2?.55:.65)*.65;
+     put(bar,slot,'organ',pitch,.9,velocity,.12,1456);
+     put(bar,slot,'organ',pitch+7,.9,velocity*.6,-.12,1486);
+    }
+    if(bar===3){
+     put(bar,0,'organ',streetMicroPitch(28)-12,80-.2,.39,.12,1456);events.at(-1)[7]=1;
+     put(bar,0,'organ',streetMicroPitch(28)-5,80-.2,.234,-.12,1486);events.at(-1)[7]=1;
+    }
+    // Syncopated kick, backbeat and quiet snare ghosts keep the eighths dancing.
+    for(const slot of (bar%2?[0,3,7,10]:[0,6,9,14]))put(bar,slot,'kick',-2,1.5,slot===0?.80:.66,0,1451);
+    for(const slot of [4,12])put(bar,slot,'snare',-2,1.2,.79,0,1452);
+    for(const slot of [3,7,10,15])put(bar,slot+.12,'snare',-4,.45,.19,.13,1453);
+    // The back half accelerates to thirty-seconds; soft in-between hits keep accents clear.
+    for(let slot=0;slot<16;slot+=bar>=2?.5:2){
+     const velocity=slot%4===2?.46:slot%2===0?.27:slot%1===0?.23:.17;
+     put(bar,slot,'hat',-4,bar>=2?.22:.55,velocity,.22,1454);
+    }
+
+   }
+   put(0,0,'shepard',0,48,.45,0,1485);
+   // Two two-bar glides: D5 to Eb5 and back, then A4 down to G4.
+   for(const [interval,velocity,pan]of [[0,.25,0],[7,.12,-.18],[12,.10,.18]]){
+    put(0,0,'lahopterix',17+interval,32,velocity,pan,1483);
+    put(2,0,'lahopterix',12+interval,32,velocity,pan,1484);
+   }
+   // One four-note statement across the three-bar descent: three beats per note.
+   for(let i=0;i<4;i++){
+    put(0,i*12,'organ',[34,33,36,35][i],12,.20,.12,1487);
+    put(0,i*12,'organ',[27,26,29,30][i],12,.20,-.12,1489);
+   }
+   // At the held melody, gather the counterline into a slowly sinking, fading cluster.
+   put(3,0,'organ',[33,34,35,36],80-.2,.175,.12,1488);
+   put(3,0,'organ',[26,27,29,30],80-.2,.175,-.12,1491);
+   // Quiet plucked sixteenths follow each two-note cell, below the main melody.
+   for(let bar=0;bar<3;bar++)for(let slot=0;slot<16;slot++){
+    const pair=Math.floor(slot/4)*2,root=lines[bar][pair],neighbor=lines[bar][pair+1];
+    const tone=[root-12,neighbor-12,root-5,neighbor][slot%4];
+    put(bar,slot,'harp',streetMicroPitch(tone),2.5,.32,slot%2?.28:-.28,1459);
+   }
+   // Sparse, interlocking plucks turn into a detuned cluster wash through F.
+   for(let slot=56;slot<127;slot+=1.5){
+    const index=Math.round((slot-56)/1.5),offset=[0,.3,1,-.2,-1,2][index%6];
+    const t=dest+slot*step,len=Math.min(5*step,dest+sectionTime*2-.2*step-t);
+    if(len>0)events.push([t,'harp',streetMicroPitch(28)+offset+(index%3===0?12:0),len,.23,index%2?.32:-.32,1459]);
+   }
+   // Crescendo answers: straight sixteenths, eighth triplets, 32nds, then sextuplets.
+   for(const [start,count,span,peak]of [[56,8,8,.66],[88,6,8,.72],[104,16,8,.76]]){
+    for(let i=0;i<count;i++){
+     const slot=start+i*span/count,velocity=.16+(peak-.16)*(i/(count-1))**1.3;
+     put(0,slot,'snare',-3,Math.min(.7,span/count*.7),velocity,i%2?.1:-.1,1480);
+    }
+   }
+   // Six quarter-note-triplet clusters per bar rise beneath the descending line.
+   for(let i=0;i<18;i++){
+    const root=streetMicroPitch(10+i);
+    put(0,i*16/6,'organ',[root,root+1,root+2,root+6],1.8,.22+i*.004,i%2?.16:-.16,1481);
+   }
+   // The rising voice settles into a held dissonance as the melody sustains Db5.
+   put(3,0,'organ',[0,1,2,6].map(n=>streetMicroPitch(28)+n),80-.2,.24,0,1482);
+   // Stagger neighbouring tones over E's last two beats; hold through all of F.
+   put(3,8,'organ',[0,-.2,.3,1,-1,2].map(n=>streetMicroPitch(28)+n),72-.2,.48,0,1458);
+   continue;
+  }
+  const origin=(part==='A'?0:8)*barTime;
+  // Reuse the user's established breaks, samples-as-synth voices, and edits.
+  for(const original of source.events){
+   if(original[0]<origin-.000001||original[0]>=origin+sectionTime-.000001)continue;
+   const e=[...original],local=e[0]-origin,slot=Math.round(local/step)%16;
+   if(prime&&e[1]==='hat')continue;
+   if(part==='D'&&['kick','snare','hat','air'].includes(e[1]))continue;
+   if(part!=='A'&&(e[1]==='snare'||(e[1]==='hat'&&slot%4!==0)))continue;
+   if((part==='C'||part==='D')&&e[1]==='pad')continue;
+   e[0]=dest+local;e[3]=Math.min(e[3],sectionTime-local);
+   if(e[1]==='pad'){e[2]=-2;e[4]*=part==='B'?.8:.6;}
+   if(e[1]==='bass'){e[2]=-5;e[4]*=.45;}
+   if(part!=='A'&&e[1]==='metal')e[4]*=.6;
+   events.push(e);
+  }
+  const windows=[];
+  for(const [a,b]of source.activeWindows||[]){const start=Math.max(a,origin)-origin,end=Math.min(b,origin+sectionTime)-origin;if(end>start)windows.push([start,end]);}
+  windows.sort((a,b)=>a[0]-b[0]);const merged=[];
+  for(const w of windows){const last=merged.at(-1);if(last&&w[0]<=last[1]+.00001)last[1]=Math.max(last[1],w[1]);else merged.push([...w]);}
+  activeWindows.push(...merged.map(w=>w.map(t=>t+dest)));
+  function add(local,kind,pitch,len,vel,lane=999){
+   const window=merged.find(w=>w[0]<=local+.00001&&w[1]>local);if(!window)return;
+   const duration=Math.min(len*step,window[1]-local,sectionTime-local);if(duration<.025)return;
+   events.push([dest+local,kind,pitch,duration,vel,0,lane]);
+  }
+  for(let bar=0;bar<4;bar++){
+   for(const [slot,pitch,length,velocity]of motifs[part==='D'?'C':part][bar%2]){
+    // Last C bar leaves a short breath before the recurring A downbeat.
+    if((part==='C'||part==='D')&&bar===3&&slot>=14)continue;
+    add((bar*16+slot)*step,'bassline',pitch,length,velocity*(part==='A'&&slot===0?1.06:1),999);
+   }
+   if(prime){
+    for(let slot=0;slot<16;slot++){
+     if(bar%2===1&&slot>=12)continue;
+     add((bar*16+slot)*step,'hat',-4,.4,slot%2?.24:.43,1460);
+    }
+    if(bar%2===1)for(let i=0;i<6;i++)add((bar*16+12+i*2/3)*step,i%3===0?'snare':'hat',-4,.35,i%3===0?.35:.30,1461);
+   }
+   if(part!=='A'&&part!=='D')add((bar*16+8)*step,'snare',-2,2,.85);
+   if(part==='D'){
+    // Original cathedral-organ progression: a G pedal under chromatic upper voices.
+    // Minor -> diminished -> altered dominant -> suspended, crushed dominant.
+    // The final dominant leaves tension hanging for the return to G in A.
+    const chord=[[-14,-2,5,13,17],[-14,-2,4,10,16],[-7,0,9,15,18],[-7,0,8,9,14,15,18]][bar];
+    add(bar*16*step,'organ',chord,15,.46+bar*.035,1400);
+    // A restrained answering voice suggests contrapuntal motion over the held harmony.
+    for(const [slot,pitch]of [[6,[17,16,18,17][bar]],[10,[13,10,15,16][bar]]]){
+     const glide=bar===3&&slot===10;
+     add((bar*16+slot)*step,'organ',[glide?streetMicroPitch(pitch):pitch],glide?6:3.8,glide?.42:.24+bar*.015,glide?1407:1406);
+    }
+    add(bar*16*step,'metal',-2,5,.32+bar*.04,1404);
+    // Driving backbeat replaces the earlier half-time pocket, still in 4/4.
+    const turnaround=bar===3;
+    for(const slot of (bar%2?[0,3,6,10]:[0,6,10]))add((bar*16+slot)*step,'kick',-2,2,.78,1410);
+    for(const slot of [4,12])if(!turnaround||slot<12)add((bar*16+slot)*step,'snare',-2,1.5,.78,1411);
+    for(const slot of [2,6,8,10,14])if(!turnaround||slot<8)add((bar*16+slot)*step,'hat',-3,.5,slot===8?.28:.42,1412);
+    if(turnaround){
+     // Triplet pickup into a six-stroke roll; a brief gap exposes A's downbeat.
+     for(let i=0;i<3;i++)add((bar*16+8+i*4/3)*step,'metal',[-2,1,4][i],.7,.30+i*.04,1413);
+     for(let i=0;i<6;i++)add((bar*16+12+i*2/3)*step,i%3===0?'snare':'air',-4+i,.40,.40+i*.065,1414);
+    }
+   }
+   if(part==='C'){
+    // Rising dissonant texture builds drama without changing the bass motif.
+    add(bar*16*step,'pad',-2,12,.16+bar*.045,1100);
+    add((bar*16+4)*step,'metal',4,5,.15+bar*.045,1101);
+    if(bar>=2)add((bar*16+12)*step,'metal',16,2,.23+bar*.025,1102);
+   }
+  }
+  if(part==='C'||part==='D'){
+   const cut=dest+sectionTime-step*(part==='D'?.2:1);
+   for(let i=events.length-1;i>=0;i--){const e=events[i];if(e[0]<dest)break;if(e[0]>=cut)events.splice(i,1);else e[3]=Math.min(e[3],cut-e[0]);}
+  }
+ }
+ return {duration:sectionTime*form.length,form,sectionBars:4,activeWindows,events:events.filter(e=>e[1]!=='metal').sort((a,b)=>a[0]-b[0])};
+}
+
+// Original 110 BPM industrial synth song: rapid minor bass, half-time drums.
+export function createTitleTheme(){
+ const form=['A','B',"A'","B'"];
+ const bpm=110,step=60/bpm/4,duration=form.length*4*16*step,events=[];
+ const riffs=[[-5,-5,7,-5,-2,-5,2,5,-5,-5,2,-2,5,2,-5,7],
+              [-5,-5,2,-5,5,2,-2,-5,-5,7,5,2,-2,2,-5,-5]];
+ function add(bar,slot,kind,pitch,len,velocity,pan=0,lane=0){
+  const time=(bar*16+slot)*step;
+  events.push([time,kind,pitch,Math.min(len*step,duration-time),velocity,pan,lane]);
+ }
+ const held=[
+  [[0,-5,7,.72],[8,2,5.5,.64],[14,5,.7,.51],[15,2,.6,.48]],
+  [[0,-2,10,.69],[12,-5,3.5,.72]],
+  [[0,2,7,.68],[8,5,5.5,.62],[14,2,.7,.50],[15,-2,.6,.48]],
+  [[0,-2,6.5,.67],[8,-5,5.5,.75]]
+ ];
+ for(let bar=0;bar<form.length*4;bar++){
+  const part=form[Math.floor(bar/4)],partB=part==='B'||part==="B'",fill=bar%4===3,riff=riffs[bar%2];
+  if(partB){
+   for(const [slot,pitch,len,vel]of held[bar%4])add(bar,slot,'bassline',pitch,len,vel,0,1201);
+  }else if(part==='A'){
+   for(let slot=0;slot<16;slot+=2)add(bar,slot,'bassline',riff[slot],1.55,slot%4===0?.75:.60,0,bar===0&&slot===0?1202:1200);
+  }else for(let slot=0;slot<16;slot++){
+   if([3,7,11].includes(slot))continue;
+   add(bar,slot,'bassline',riff[slot],slot%4===0?.8:.55,slot%4===0?.75:.51,0,1200);
+  }
+  for(const slot of (bar%2?[0,6,12]:[0,6]))if(!fill||slot<8)add(bar,slot,'kick',-2,2.5,.72);
+  if(!fill)add(bar,8,'snare',-3,1.5,.64);
+  if(part==='A')for(const slot of [0,4,8,12])add(bar,slot,'hat',-4,.60,slot===0?.56:.46,.18,1212);
+  // B-prime adds accented sixteenths, leaving space for the fourth-bar fill.
+  const hats=part==='A'?[]:part==="B'"?Array.from({length:16},(_,i)=>i):[2,6,10,14];
+  for(const slot of hats)if(!fill||slot<8)add(bar,slot,'hat',-4,part==="B'"?.60:.35,part==="B'"?(slot%4===2?.85:slot%2===0?.64:.43):.40,.2);
+  if(fill){
+   // Beat three in triplets, beat four in sextuplets: the bar stays 4/4.
+   for(let i=0;i<3;i++)add(bar,8+i*4/3,'snare',-3,.65,.42+i*.08,i%2?-.12:.12,1210);
+   for(let i=0;i<6;i++)add(bar,12+i*2/3,i%3===0?'snare':'metal',[-5,-2,2,-5,2,5][i],.38,.28+i*.045,i%2?-.22:.22,1211);
+  }
+  if(bar%2===0){
+   add(bar,0,'pad',-5,8,.34,-.30);
+   add(bar,4,'pad',bar%4===0?-2:5,8,.23,.30);
+  }
+  if(bar%4===0)add(bar,0,'metal',-5,5,.27,-.25);
+ }
+ // The opening and bar-two pickups remain; no extra pickup at the loop end.
+
+ // Bar two also ends with the same two sixteenths, replacing its last eighth.
+ const firstPickup=30*step;
+ for(let i=events.length-1;i>=0;i--){
+  const e=events[i];if(e[1]!=='bassline'||e[0]>=32*step)continue;
+  if(e[0]>=firstPickup-1e-8)events.splice(i,1);
+  else e[3]=Math.min(e[3],firstPickup-e[0]);
+ }
+ for(const slot of [14,15]){add(1,slot,'bassline',riffs[0][0],.8,.66,0,1200);add(1,slot,'snare',-3,.7,.44,0,1213);}
+ const pickupDuration=2*step;
+ const pickupEvents=[...[-2,-1].map(slot=>[slot*step,'bassline',riffs[0][0],.8*step,.66,0,1200]),...[-2,-1].map(slot=>[slot*step,'snare',-3,.7*step,.44,0,1213])].sort((a,b)=>a[0]-b[0]);
+ // Keep the final sextuplet, then a tiny breath before the downbeat.
+ const end=duration-step*.2;
+ return {bpm,duration,form,sectionBars:4,pickupDuration,pickupEvents,events:events.filter(e=>e[0]<end).map(e=>{e[3]=Math.min(e[3],end-e[0]);return e;}).sort((a,b)=>a[0]-b[0])};
+}
+
+// Drum phrases from the user-supplied MIDI: source bars 3-10, 11-18, 27-34, 31-38.
+export const HOSPITAL_DRUMS=[[0.0,35,110],[0.0,42,100],[0.5,42,100],[0.75,42,100],[1.0,35,110],[1.0,40,110],[1.0,42,100],[1.5,42,100],[1.75,42,100],[2.0,35,110],[2.0,42,100],[2.5,42,100],[2.75,42,100],[3.0,35,110],[3.0,40,110],[3.0,42,100],[3.5,42,100],[3.75,42,100],[4.0,35,110],[4.0,42,100],[4.5,42,100],[4.75,42,100],[5.0,35,110],[5.0,40,110],[5.0,42,100],[5.5,42,100],[5.75,42,100],[6.0,35,110],[6.0,42,100],[6.5,42,100],[6.75,42,100],[7.0,35,110],[7.0,40,110],[7.0,42,100],[7.5,42,100],[7.75,42,100],[8.0,35,110],[8.0,42,100],[8.5,42,100],[8.75,42,100],[9.0,35,110],[9.0,40,110],[9.0,42,100],[9.5,42,100],[9.75,42,100],[10.0,35,110],[10.0,42,100],[10.5,42,100],[10.75,42,100],[11.0,35,110],[11.0,40,110],[11.0,42,100],[11.5,42,100],[11.75,42,100],[12.0,35,110],[12.0,42,100],[12.5,42,100],[12.75,42,100],[13.0,35,110],[13.0,40,110],[13.0,42,100],[13.5,42,100],[13.75,42,100],[14.0,35,110],[14.0,42,100],[14.5,42,100],[14.75,42,100],[15.0,35,110],[15.0,40,110],[15.0,42,100],[15.5,42,100],[15.75,42,100],[16.0,35,110],[16.0,42,100],[16.5,42,100],[16.75,42,100],[17.0,35,110],[17.0,40,110],[17.0,42,100],[17.5,42,100],[17.75,42,100],[18.0,35,110],[18.0,42,100],[18.5,42,100],[18.75,42,100],[19.0,35,110],[19.0,40,110],[19.0,42,100],[19.5,42,100],[19.75,42,100],[20.0,35,110],[20.0,42,100],[20.5,42,100],[20.75,42,100],[21.0,35,110],[21.0,40,110],[21.0,42,100],[21.5,42,100],[21.75,42,100],[22.0,35,110],[22.0,42,100],[22.5,42,100],[22.75,42,100],[23.0,35,110],[23.0,40,110],[23.0,42,100],[23.5,42,100],[23.75,42,100],[24.0,35,110],[24.0,42,100],[24.5,42,100],[24.75,42,100],[25.0,35,110],[25.0,40,110],[25.0,42,100],[25.5,42,100],[25.75,42,100],[26.0,35,110],[26.0,42,100],[26.5,42,100],[26.75,42,100],[27.0,35,110],[27.0,40,110],[27.0,42,100],[27.5,42,100],[27.75,42,100],[28.0,35,110],[28.0,42,100],[28.5,42,100],[28.75,42,100],[29.0,35,110],[29.0,40,110],[29.0,42,100],[29.5,42,100],[29.75,42,100],[30.0,35,110],[30.0,42,100],[30.5,42,100],[30.75,42,100],[31.0,35,110],[31.0,40,110],[31.0,42,100],[31.5,42,100],[31.75,42,100],[32.0,35,110],[32.0,42,100],[32.5,35,110],[32.5,42,100],[33.0,40,110],[33.0,57,100],[34.0,35,110],[34.0,42,100],[34.5,35,110],[34.5,42,100],[35.0,40,110],[35.0,57,100],[36.0,35,110],[36.0,55,100],[36.0,42,100],[36.5,35,110],[36.5,42,100],[37.0,40,110],[37.0,42,100],[37.5,35,110],[37.5,55,100],[37.5,42,100],[38.0,42,100],[38.5,35,110],[38.5,42,100],[39.0,40,110],[39.0,42,100],[39.5,42,100],[40.0,35,110],[40.0,42,100],[40.5,35,110],[40.5,42,100],[41.0,40,110],[41.0,57,100],[42.0,35,110],[42.0,42,100],[42.5,35,110],[42.5,42,100],[43.0,40,110],[43.0,57,100],[44.0,35,110],[44.0,55,100],[44.0,42,100],[44.5,35,110],[44.5,42,100],[45.0,40,110],[45.0,42,100],[45.5,35,110],[45.5,55,100],[45.5,42,100],[46.0,42,100],[46.5,35,110],[46.5,42,100],[47.0,40,110],[47.0,42,100],[47.5,40,110],[47.5,42,100],[47.75,40,110],[48.0,35,110],[48.0,42,100],[48.5,35,110],[48.5,42,100],[49.0,40,110],[49.0,57,100],[50.0,35,110],[50.0,42,100],[50.5,35,110],[50.5,42,100],[51.0,40,110],[51.0,57,100],[52.0,35,110],[52.0,55,100],[52.0,42,100],[52.5,35,110],[52.5,42,100],[53.0,40,110],[53.0,42,100],[53.5,35,110],[53.5,55,100],[53.5,42,100],[54.0,42,100],[54.5,35,110],[54.5,42,100],[55.0,40,110],[55.0,42,100],[55.5,42,100],[56.0,35,110],[56.0,42,100],[56.5,35,110],[56.5,42,100],[57.0,40,110],[57.0,57,100],[58.0,35,110],[58.0,42,100],[58.5,35,110],[58.5,42,100],[59.0,40,110],[59.0,57,100],[60.0,35,110],[60.0,55,100],[60.0,42,100],[60.5,35,110],[60.5,42,100],[61.0,40,110],[61.0,42,100],[61.5,35,110],[61.5,55,100],[61.5,42,100],[62.0,42,100],[62.5,35,110],[62.5,42,100],[63.0,40,110],[63.0,42,100],[63.5,40,110],[63.5,42,100],[63.75,40,110],[64.0,35,110],[64.0,57,100],[64.0,42,100],[64.5,42,100],[65.0,40,110],[65.0,42,100],[65.5,42,100],[66.0,35,110],[66.0,42,100],[66.5,35,110],[66.5,42,100],[67.0,40,110],[67.0,42,100],[67.5,42,100],[68.0,35,110],[68.0,55,100],[68.0,42,100],[68.5,42,100],[69.0,40,110],[69.0,55,100],[69.0,42,100],[69.5,42,100],[70.0,35,110],[70.0,42,100],[70.5,35,110],[70.5,42,100],[71.0,40,110],[71.0,42,100],[71.5,42,100],[72.0,35,110],[72.0,57,100],[72.0,42,100],[72.5,42,100],[73.0,40,110],[73.0,42,100],[73.5,42,100],[74.0,35,110],[74.0,42,100],[74.5,35,110],[74.5,42,100],[75.0,40,110],[75.0,42,100],[75.5,35,110],[75.5,42,100],[76.0,42,100],[76.5,35,110],[76.5,42,100],[77.0,40,110],[77.0,42,100],[77.5,42,100],[78.0,35,110],[78.0,42,100],[78.5,35,110],[78.5,42,100],[79.0,40,110],[79.0,42,100],[79.25,40,110],[79.5,40,110],[79.5,42,100],[80.0,35,110],[80.0,57,100],[80.0,42,100],[80.5,42,100],[81.0,40,110],[81.0,42,100],[81.5,42,100],[82.0,35,110],[82.0,42,100],[82.5,35,110],[82.5,42,100],[83.0,40,110],[83.0,42,100],[83.5,42,100],[84.0,35,110],[84.0,55,100],[84.0,42,100],[84.5,42,100],[85.0,40,110],[85.0,55,100],[85.0,42,100],[85.5,42,100],[86.0,35,110],[86.0,42,100],[86.5,35,110],[86.5,42,100],[87.0,40,110],[87.0,42,100],[87.5,42,100],[88.0,35,110],[88.0,57,110],[88.0,42,100],[88.5,42,100],[88.75,42,100],[89.0,40,110],[89.0,42,100],[89.5,42,100],[89.75,42,100],[90.0,42,100],[90.5,35,110],[90.5,42,100],[90.75,42,100],[91.0,40,110],[91.0,42,100],[91.5,35,110],[91.5,42,100],[91.75,42,100],[92.0,42,100],[92.5,35,110],[92.5,42,100],[92.75,42,100],[93.0,40,110],[93.0,42,100],[93.5,42,100],[93.75,42,100],[94.0,42,100],[94.5,35,110],[94.5,42,100],[94.75,42,100],[95.0,40,110],[95.0,42,100],[95.5,35,110],[95.5,42,100],[95.75,42,100],[96.0,35,110],[96.0,57,100],[96.0,42,100],[96.5,42,100],[97.0,40,110],[97.0,42,100],[97.5,42,100],[98.0,35,110],[98.0,42,100],[98.5,35,110],[98.5,42,100],[99.0,40,110],[99.0,42,100],[99.5,42,100],[100.0,35,110],[100.0,55,100],[100.0,42,100],[100.5,42,100],[101.0,40,110],[101.0,55,100],[101.0,42,100],[101.5,42,100],[102.0,35,110],[102.0,42,100],[102.5,35,110],[102.5,42,100],[103.0,40,110],[103.0,42,100],[103.5,42,100],[104.0,35,110],[104.0,57,110],[104.0,42,100],[104.5,42,100],[104.75,42,100],[105.0,40,110],[105.0,42,100],[105.5,42,100],[105.75,42,100],[106.0,42,100],[106.5,35,110],[106.5,42,100],[106.75,42,100],[107.0,40,110],[107.0,42,100],[107.5,35,110],[107.5,42,100],[107.75,42,100],[108.0,42,100],[108.5,35,110],[108.5,42,100],[108.75,42,100],[109.0,40,110],[109.0,42,100],[109.5,42,100],[109.75,42,100],[110.0,42,100],[110.5,35,110],[110.5,42,100],[110.75,42,100],[111.0,40,110],[111.0,42,100],[111.5,35,110],[111.5,42,100],[111.75,42,100],[112.0,35,110],[112.0,42,100],[112.5,35,110],[112.5,42,100],[112.75,42,100],[113.0,40,110],[113.0,42,100],[113.5,35,110],[113.5,42,100],[113.75,42,100],[114.0,35,110],[114.0,42,100],[114.5,35,110],[114.5,42,100],[114.75,42,100],[115.0,40,110],[115.0,42,100],[115.5,35,110],[115.5,42,100],[115.75,42,100],[116.0,40,110],[116.0,57,100],[116.0,42,100],[116.5,35,110],[116.5,42,100],[117.0,35,110],[117.0,42,100],[117.5,40,110],[117.5,57,100],[117.5,42,100],[118.0,35,110],[118.0,42,100],[118.5,35,110],[118.5,42,100],[119.0,40,110],[119.0,57,100],[119.0,42,100],[119.5,35,110],[119.5,42,100],[120.0,35,110],[120.0,42,100],[120.5,40,110],[120.5,57,100],[120.5,42,100],[121.0,35,110],[121.0,42,100],[121.5,35,110],[121.5,42,100],[122.0,48,110],[122.0,40,110],[122.0,57,100],[122.0,42,100],[122.25,48,110],[122.5,35,110],[122.5,48,110],[122.5,42,100],[122.75,48,110],[123.0,45,110],[123.0,40,110],[123.0,57,100],[123.0,42,100],[123.25,45,110],[123.5,35,110],[123.5,45,110],[123.5,42,100],[123.75,45,110],[124.0,40,110],[124.0,57,100],[124.0,42,100],[124.5,35,110],[124.5,42,100],[125.0,35,110],[125.0,42,100],[125.5,40,110],[125.5,57,100],[125.5,42,100],[126.0,35,110],[126.0,42,100],[126.5,35,110],[126.5,42,100],[127.0,40,110],[127.0,42,100],[127.5,35,110],[127.5,57,100],[127.5,42,100]];
+
+export function createHospitalPhrase(){
+ const bpm=170,step=60/bpm/4,form=['A'],duration=8*16*step,events=[];
+ function add(bar,slot,kind,pitch,len,vel,pan=0,lane=1500){
+  const time=(bar*16+slot)*step;
+  events.push([time,kind,pitch,Math.min(len*step,duration-time),vel,pan,lane]);
+ }
+ // MIDI percussion keys select drum types, not a copied pitched melody.
+ for(const [beat,key,velocity]of HOSPITAL_DRUMS){
+  if(beat>=32)continue;
+  const kick=key===35||key===36,snare=key===38||key===40,hat=key===42||key===44||key===46;
+  const tom=[41,43,45,47,48,50].includes(key);
+  const kind=kick?'kick':snare?'snare':hat?'hat':tom?'tom':'cymbal';
+  const pitch=kick?-3:snare?-2:hat?-4:tom?(key-45)*1.5:key===55?3:-2;
+  const level=kick?.84:snare?.79:hat?.55:tom?.75:.42;
+  events.push([beat*60/bpm,kind,pitch,Math.min(kick?.26:snare?.14:hat?.055:tom?.23:.55,duration-beat*60/bpm),level*velocity/110,kick?0:tom?(key-45)*.06:hat?.23:-.20,1600+key]);
+ }
+ // Fast, repeating arpeggios link minor-major, augmented and diminished colours.
+ const harmony={EmM:[-5,-2,2,6],Eaug:[-5,-1,3],Faug:[-4,0,4],Fdim:[-3,0,3,6],Balt:[2,6,10,12]};
+ const changes=[
+  ['EmM','EmM','Eaug','Eaug','EmM','EmM','Eaug','Eaug'],
+  ['Eaug','Eaug','Faug','Faug','Eaug','Eaug','Fdim','Fdim'],
+  ['EmM','EmM','Fdim','Fdim','Faug','Faug','Balt','Balt'],
+  ['Eaug','Eaug','Faug','Faug','Fdim','Balt','Balt','Balt']
+ ];
+ const contours=[
+  [0,1,2,1,0,2,1,2,0,1,2,1,0,2,1,2],
+  [0,1,2,0,1,2,1,0,0,1,2,0,2,1,2,1],
+  [0,2,1,2,0,1,2,1,0,2,1,2,0,1,2,1],
+  [0,1,2,1,0,1,2,0,0,2,1,2,0,1,2,1]
+ ];
+ for(let bar=0;bar<8;bar++){
+  const section=Math.floor(bar/8),local=bar%8,chord=harmony[changes[section][local]];
+  // Sixteenths stay in the bass register; octave peaks mark the repeated figure.
+  contours[section].forEach((index,slot)=>{
+   if(local===7&&slot>=14)return; // let the existing drum turnaround speak
+   const tone=chord[index]+((slot===3||slot===11)&&section!==2?12:0);
+   add(bar,slot,'bassline',tone,slot%4===0?.86:.67,slot%4===0?.76:slot%2===0?.61:.49,0,1500);
+  });
+  // The harmony sustains while the bass moves, so the tension has a clear shape.
+  add(bar,0,'organ',chord,15,section===3?.18:.14,0,1504);
+  // Broad two-bar swells; shorten them when the final build changes chords each bar.
+  if(bar%2===0||(section===3&&local>=5)){
+   const held=section===3&&local>=4?15.8:31.8;
+   add(bar,0,'polysynth',chord,held,section===3?.54:.46,bar%4===0?-.12:.12,1505);
+  }
+  if(bar%2===1){
+   add(bar,8,'pad',chord.at(-1),4,.29,-.20,1502);
+   add(bar,13,'pad',chord[1],2,.25,.20,1502);
+  }
+ }
+ // Sparse held upper notes bridge neighbouring swells rather than adding another riff.
+ for(const [bar,slot,pitch,len,pan]of [[1,8,19,40,-.16]])
+  add(bar,slot,'lead',pitch,len,.18,pan,1506);
+ return {bpm,duration,form,sectionBars:8,events:events.sort((a,b)=>a[0]-b[0])};
+}
+
+// Four eight-bar parts; primes add fast hats, and B-prime doubles the bass rhythm.
+export function createHospitalTheme(){
+ const base=createHospitalPhrase(),events=[],form=['A',"A'",'B',"B'"],step=60/base.bpm/4;
+ for(let part=0;part<4;part++){
+  const offset=part*base.duration;
+  for(const source of base.events){
+   if(part>=2&&(source[6]===1500||source[1]==='lead'||source[6]===1502))continue;
+   const e=[...source];e[0]+=offset;
+   if(e[1]==='lead')e[7]=part;
+   events.push(e);
+   if(part===0&&e[1]==='lead'){events.push([e[0],'organ',e[2],e[3],.16,e[5],1510]);events.push([e[0],'lahopterix',e[2]+12,e[3],.30,-e[5],1511]);}
+  }
+  if(part>=2)for(let bar=0;bar<8;bar++){
+   const chord=base.events.find(e=>e[6]===1504&&Math.abs(e[0]-bar*16*step)<1e-7)[2];
+   // A 3+3+2 eighth-note accent cycle drives an octave-pedal riff, with a fourth-bar answer.
+   const root=chord[0],answer=bar%4===3;
+   const phrase=[[0,root,1.5],[2,root+12,1.2],[4,root,1.2],[6,root,1.5],[8,chord[2],1.2],[10,root+12,1.2],[12,answer?chord[1]:root,1.5],[14,answer?chord[2]:root+12,1.3]];
+   for(const [slot,pitch,length]of phrase){
+    if(part===2&&bar===0&&slot===0){
+     for(const half of [0,1])events.push([offset+half*length/2*step,'bassline',pitch,length/2*step,.78,0,1507]);
+    }else{
+    events.push([offset+(bar*16+slot)*step,'bassline',pitch,(part===3?.78:length)*step,[0,6,12].includes(slot)?.78:.57,0,1507]);
+    }
+    if(part===3){
+     const passing=chord[(slot/2+bar)%3];
+     events.push([offset+(bar*16+slot+1)*step,'bassline',passing,.65*step,.49,0,1507]);
+    }
+   }
+  }
+  if(part>=2){
+   // Four two-bar statements: original, semitone up, original, major third down.
+   for(const [bar,slot,pitch,length,pan]of [[0,8,26,28,-.15],[2,8,27,28,-.15],[4,8,26,28,-.15],[6,8,22,21,-.08]])
+    events.push([offset+(bar*16+slot)*step,'lead',pitch,length*step,.14,pan,1506,2]);
+  }
+
+  if(part%2===1)for(let bar=0;bar<8;bar++)for(let slot=0;slot<16;slot++){
+   const t=(bar*16+slot)*step;
+   // Fill empty sixteenth positions without doubling existing reference hats.
+   if(base.events.some(e=>e[1]==='hat'&&Math.abs(e[0]-t)<1e-7))continue;
+   events.push([offset+t,'hat',-4,.045,slot%2?.38:.47,.2,1590]);
+  }
+ }
+ // Alternate spacious eighths, fast tuplets, a sparse syncopated answer, and a fast final roll.
+ const fills=[[6],[0,4/3,8/3,4,14/3,16/3,6,20/3,22/3],[0,3,6],[0,2/3,4/3,2,8/3,10/3,4,5,6,6.5,7,7.5]];
+ for(let part=0;part<4;part++){
+  const start=(part+1)*base.duration-8*step,end=(part+1)*base.duration;
+  // The first ending adds one offbeat; retain its regular beat-four snare.
+  for(let i=events.length-1;part>0&&i>=0;i--)if(events[i][1]==='snare'&&events[i][0]>=start-1e-8&&events[i][0]<end-1e-8)events.splice(i,1);
+  fills[part].forEach((slot,i)=>events.push([start+slot*step,'snare',-2,Math.min(.14,end-(start+slot*step)),(fills[part].length===1?.79:.3+.48*i/(fills[part].length-1)),i%2?.09:-.09,1591]));
+ }
+ return {bpm:base.bpm,duration:base.duration*4,form,sectionBars:8,events:events.sort((a,b)=>a[0]-b[0])};
+}
