@@ -28,14 +28,13 @@ function back(){match=null;paused=false;soundEngine.setTheme('title');$('#song-n
 $('#fight').onclick=start;$('#back').onclick=back;$('#select-again').onclick=back;$('#pause').onclick=pause;$('#resume').onclick=pause;$('#rematch').onclick=start;
 $('.close').onclick=()=>$('#help').close();
 let audioStarting=false,entering=false;
-let selectionLoaded;
-const selectionReady=new Promise(resolve=>selectionLoaded=resolve);
 $('#entry-gate').onclick=async()=>{
  if(entering)return;entering=true;
  try{
   // Resume is requested synchronously in this trusted user gesture.
-  const audioReady=soundEngine.setEnabled(true);
-  await Promise.all([audioReady,selectionReady]);
+  // Do not keep a fresh visitor behind the gate while large artwork loads.
+  // The match button remains disabled until the selection finishes loading.
+  try{await soundEngine.setEnabled(true)}catch(error){soundOn=false;console.warn('Audio could not start',error);}
   $('#entry-gate').classList.add('entering');
   document.body.classList.remove('awaiting-entry');
   document.querySelector('header').inert=false;document.querySelector('main').inert=false;
@@ -115,7 +114,7 @@ function render(dt){clock+=dt;if(match)for(const f of match.fighters)f.walkTime=
 function loop(time){const dt=Math.min(.05,(time-last)/1000||0);last=time;if(match){if(!paused){accumulator+=dt;while(accumulator>=1/120){match.step(1/120,[readInput(0),readInput(1)]);taps.clear();accumulator-=1/120;}events();}render(paused?0:dt);}requestAnimationFrame(loop);}
 
 // Synth title needs no recording download; entry click starts its audio clock.
-try{await loadArt(()=>{$$('.fighter-card').forEach(b=>drawPortrait(b.querySelector('canvas'),b.dataset.id));selectionLoaded();});ready=true;$('#fight').disabled=false;$('#fight').textContent='START MATCH';requestAnimationFrame(loop);}catch(error){$('#fight').textContent='ART FAILED TO LOAD — RELOAD';console.error(error);}
+try{await loadArt(()=>{$$('.fighter-card').forEach(b=>drawPortrait(b.querySelector('canvas'),b.dataset.id));});ready=true;$('#fight').disabled=false;$('#fight').textContent='START MATCH';requestAnimationFrame(loop);}catch(error){$('#fight').textContent='ART FAILED TO LOAD — RELOAD';console.error(error);}
 // Read-only diagnostics for browser verification and future integration.
 window.lastLight={get state(){return match},get ready(){return ready},get sprites(){return sprites}};
 
