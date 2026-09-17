@@ -60,7 +60,24 @@ $$('.stage').forEach(b=>b.onclick=()=>{stage=b.dataset.stage;$$('.stage').forEac
 $$('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;$$('[data-mode]').forEach(x=>x.classList.toggle('active',x===b));$('#difficulty').hidden=mode==='local';});
 function select(id){chosen=id;$$('.fighter-card').forEach(b=>{b.classList.toggle('active',b.dataset.id===id);b.setAttribute('aria-pressed',b.dataset.id===id);b.querySelector('.mark').textContent=b.dataset.id===id?'◆':'';});const f=ROSTER[id];$('#fighter-name').textContent=f.name;$('#moves').innerHTML=['Punch','Kick',...f.moves].map((m,i)=>'<span><kbd>'+['J','U','I','K','L'][i]+'</kbd>'+m+'</span>').join('');}
 for(const [i,[id,f]]of Object.entries(ROSTER).entries()){const b=document.createElement('button');b.className='fighter-card';b.dataset.id=id;b.setAttribute('aria-label','Select '+f.name);b.innerHTML='<span class="number">0'+(i+1)+'</span><canvas aria-hidden="true"></canvas><span class="name">'+f.name+'</span><span class="mark"></span>';b.onclick=()=>select(id);$('#roster').append(b);const o=document.createElement('option');o.value=id;o.textContent=f.name;$('#opponent').append(o);}$('#opponent').value='mari';select(chosen);
-window.addEventListener('keydown',e=>{if($('#help').open||/SELECT|INPUT/.test(document.activeElement.tagName))return;if(match){if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault();if(e.code==='Escape'&&!e.repeat)pause();if(e.code==='KeyR'&&match.phase==='over')start();keys.add(e.code);if(!e.repeat)taps.add(e.code);}});
+window.addEventListener('keydown',e=>{
+ if(e.ctrlKey||e.metaKey||e.altKey||e.isComposing||$('#help').open||document.activeElement.isContentEditable||/SELECT|INPUT|TEXTAREA/.test(document.activeElement.tagName))return;
+ const confirm=['Enter','NumpadEnter','Space'].includes(e.code);
+ if(document.body.classList.contains('awaiting-entry')){
+  if(confirm){e.preventDefault();if(!e.repeat)$('#entry-gate').click();}
+  return;
+ }
+ if(!$('#selection').hidden){
+  const direction=['ArrowLeft','ArrowUp','KeyA','KeyW'].includes(e.code)?-1:['ArrowRight','ArrowDown','KeyD','KeyS'].includes(e.code)?1:0;
+  if(direction){
+   e.preventDefault();if(e.repeat)return;
+   const ids=Object.keys(ROSTER);select(ids[(ids.indexOf(chosen)+direction+ids.length)%ids.length]);
+   $('.fighter-card.active').focus({preventScroll:true});
+  }else if(confirm){e.preventDefault();if(!e.repeat&&ready)start();}
+  return;
+ }
+ if(match){if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault();if(e.code==='Escape'&&!e.repeat)pause();if(e.code==='KeyR'&&match.phase==='over')start();keys.add(e.code);if(!e.repeat)taps.add(e.code);}
+});
 window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>{keys.clear();taps.clear();if(match&&!paused&&match.phase!=='over')pause();});document.addEventListener('visibilitychange',()=>{if(document.hidden&&match&&!paused&&match.phase!=='over')pause();});
 $$('[data-key]').forEach(b=>{b.onpointerdown=e=>{e.preventDefault();b.setPointerCapture(e.pointerId);keys.add(b.dataset.key);taps.add(b.dataset.key);};b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>keys.delete(b.dataset.key);});
 function text(str,x,y,size=16,color='#e4d9bf',align='left',font='Arial'){ctx.font=`${size}px ${font}`;ctx.fillStyle=color;ctx.textAlign=align;ctx.fillText(str,x,y);}
