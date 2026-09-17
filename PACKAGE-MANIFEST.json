@@ -1,0 +1,599 @@
+{
+  "entry": "index.html",
+  "files": [
+    {
+      "path": "game.js",
+      "bytes": 19898,
+      "sha256": "944d825a74c6383886da556be8a86add4005ef77e0e42af3f7c2b0a3e12ab299",
+      "reason": "Runtime JavaScript module"
+    },
+    {
+      "path": "audio-engine.js",
+      "bytes": 44782,
+      "sha256": "5fd9feab4788781b6fe1d9cf6a529dfabe5bca160c20841c3940730013699ad7",
+      "reason": "Runtime JavaScript module"
+    },
+    {
+      "path": "synth-score.js",
+      "bytes": 76933,
+      "sha256": "ce170310924986e57de80aa3cb624e71edd2cbbe6d1ce2a97e2ecc9d9f92ce24",
+      "reason": "Runtime JavaScript module"
+    },
+    {
+      "path": "synth-music.js",
+      "bytes": 50864,
+      "sha256": "ed10557513c084bd4de6c60887c6d428290181390866b13adced45d78f4229d3",
+      "reason": "Runtime JavaScript module"
+    },
+    {
+      "path": "weather.js",
+      "bytes": 1184,
+      "sha256": "cb3d2a037f6321f7bc4e23d8588f7dbe1f06f2516880b37cfdde0fc0e1e788c4",
+      "reason": "Runtime JavaScript module"
+    },
+    {
+      "path": "damage-art.js",
+      "bytes": 3477,
+      "sha256": "52ec5509f30d799ca4c69fd0d7e15f7e33ac14fe4d7b2841495b964f9165e6ec",
+      "reason": "Runtime JavaScript module"
+    },
+    {
+      "path": "art.js",
+      "bytes": 24593,
+      "sha256": "4e494f8436d9b4a9536b398e6153361a167506ff2d9e4befc205e55ac2a78ce4",
+      "reason": "Runtime JavaScript module"
+    },
+    {
+      "path": "pose-geometry.js",
+      "bytes": 1276,
+      "sha256": "f53c481ba6bdac5037747743960b1368a12967c5d42fb450a209d9ab0ad0b88a",
+      "reason": "Runtime JavaScript module"
+    },
+    {
+      "path": "damage-layout.js",
+      "bytes": 1946,
+      "sha256": "30ea61f0c9a85440547fc49123f1d1bf80c0d4e41544b2e5f5aa1b67da1e8d69",
+      "reason": "Runtime JavaScript module"
+    },
+    {
+      "path": "normal-attacks.js",
+      "bytes": 19542,
+      "sha256": "33793d11bc8fee038f5cd4e4eb96a35869c098214e218889e3493fac608cbc1d",
+      "reason": "Runtime JavaScript module"
+    },
+    {
+      "path": "wave-art.js",
+      "bytes": 5402,
+      "sha256": "78321b5cd0f9eba2d7d94a1117cede21c50f1dd5d78e32f8ec7b8f644238904d",
+      "reason": "Runtime JavaScript module"
+    },
+    {
+      "path": "combat.js",
+      "bytes": 18622,
+      "sha256": "36f3e5dbc461deb7107f1af79ac8a1e46f9cf02200bf07757d3a829abe358830",
+      "reason": "Runtime JavaScript module"
+    },
+    {
+      "path": "movement-layout.js",
+      "bytes": 3954,
+      "sha256": "55b1eed652a74ba0d59cce2cd13175ea55b6e63d95337abf9231de3aec6d8a87",
+      "reason": "Runtime JavaScript module"
+    },
+    {
+      "path": "context-layout.js",
+      "bytes": 422,
+      "sha256": "427c1b6078a26d3a6895070888c0be0a123e2782c39ad6c70558df5cb99ebe5a",
+      "reason": "Runtime JavaScript module"
+    },
+    {
+      "path": "weapon-layout.js",
+      "bytes": 987,
+      "sha256": "c055bd1e92431ed8d5969a463fb3beeb1b0530aea6b23ca33fd6156f22e4b182",
+      "reason": "Runtime JavaScript module"
+    },
+    {
+      "path": "feedback-art.js",
+      "bytes": 4166,
+      "sha256": "6f19f7eb4c7448f0523e64535cb264d50d310ae7c763b3fe396bd09e8d63d7d3",
+      "reason": "Runtime JavaScript module"
+    },
+    {
+      "path": "index.html",
+      "bytes": 5463,
+      "sha256": "43e356d249b2f1cb19089360ba49708c46f334d38db9978e39a015ac59fc56e2",
+      "reason": "Web entry point"
+    },
+    {
+      "path": "style.css",
+      "bytes": 10751,
+      "sha256": "8e4795246e5d506b6dd1d266fe2f3bf33fe3e66a01a330e0ef3401d4176aa62d",
+      "reason": "Game styles"
+    },
+    {
+      "path": "assets/andre-source-variations.png",
+      "bytes": 976059,
+      "sha256": "7ee82659fa3bf1ae5dfbdf8df0bbc28c97e55170c53e74556c819f26ad34129d",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/mari-cat-white.png",
+      "bytes": 1501482,
+      "sha256": "6efaea87b9c740eb6af42f515ceb8a565e56a42ed517a5f7e907f14ed20afc69",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/mari-cat-black.png",
+      "bytes": 1218356,
+      "sha256": "3a6834ae454bb98b2bc9fa91f005d3dfdb514ddb1de59774516e760462d714e8",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-cat-run.png",
+      "bytes": 1823628,
+      "sha256": "383168301f31b1ca8a0fd0a81b73e2208d9d6c71a59261804ecac968080210ec",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-cat-walk.png",
+      "bytes": 2001482,
+      "sha256": "d93e6916ef592412c61248374c9d744e80f45d46b304f17e5df3b854ea9b555d",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-cat-actions.png",
+      "bytes": 2019839,
+      "sha256": "6b2f84d0db7a363c86204951a612d9a70fdbdd568a3bb071aaab7123b7c53cda",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-feedback-cast.png",
+      "bytes": 1777687,
+      "sha256": "ae843aa940bf88840b15b4afde788228742e1f0cfe23557bc8edaa3326ef2fe9",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-feedback-effects.png",
+      "bytes": 1672719,
+      "sha256": "bb1349ed286b003bb05c3c49503d6fd7bef2d2cb5207abc8219088cc3aa9c9b2",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-walk.png",
+      "bytes": 1657089,
+      "sha256": "1635fa82a04e08a805e3cd6bec0cfde9429d7c3f389e127051936be4f60d7ac3",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/mari-walk.png",
+      "bytes": 1500808,
+      "sha256": "b7bd986f9f5ac9bcb798cad0fdc2cafe39542f5649a407f95da4d52d02518a8b",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/vorath-claw-ground.png",
+      "bytes": 1844939,
+      "sha256": "be9f79defe867e5dbbf1689090862b085d0e75b7f2e9b291d41fe3b33e717ec9",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/vorath-claw-air.png",
+      "bytes": 1908670,
+      "sha256": "4be52c87f875bb66bd57dc489d5e745d3b2fee2a76a52b89e2958934b409daac",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/vorath-fire-cast.png",
+      "bytes": 1964921,
+      "sha256": "e3d09d9f84bd1c32f186e69780069268aac8da477453aa3305d19b37d18c7c46",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/vorath-fire-jet.png",
+      "bytes": 2197418,
+      "sha256": "9c5e5b5d9420dac51a3195ff1755f3c738a05bf869c7d006b909150ba6b615f7",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/andre-ground-punch.png",
+      "bytes": 1924951,
+      "sha256": "9711ae4dfa731704c792f0fb6a148e9096993c8cc63f943f5f4de7450c21272e",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-ground-punch.png",
+      "bytes": 819269,
+      "sha256": "af69e4222e3c692bd8ab263e8024e0161ed8a68b3f43c3629ddc3435a6c53d5a",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/vorath-walk.png",
+      "bytes": 1944454,
+      "sha256": "6a24a22b2938c931d03088737ed69e06654f42d5a37a1823ca3fda604732e8f5",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/andre-push-kick.png",
+      "bytes": 1187966,
+      "sha256": "b60b705768090401b0bff0c0913726d09423a9219e6d4b38b86f539432cc56b1",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-ground-smash.png",
+      "bytes": 976443,
+      "sha256": "9ae99072cc9987f6407072f3500deac712ebb7b0bc3b3ef4159f56f0b0f27965",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/andre-thesis-cast.png",
+      "bytes": 2064230,
+      "sha256": "bfcae7adb589552b4e67f3b2f2ab6fe3e0bbafab9e245bc6ebbb48e682d73806",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/andre-thesis-storm.png",
+      "bytes": 2955727,
+      "sha256": "c08fc902b2006ff37f8f35fb04758375a7f88cbc0391676eedcc90129a09be4c",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/andre-board-bash.png",
+      "bytes": 2059143,
+      "sha256": "9d3ef1452bf5bf224f49d6e0cf22cf12447327ef8747004449c9c10a0bf6811c",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-air-smash.png",
+      "bytes": 1046785,
+      "sha256": "1e54a07b4a2dce5a3d1e2a2da363a73d21cc50008c45115a86b28339681ca6d5",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-context-attacks.png",
+      "bytes": 1369309,
+      "sha256": "a89d05601747530afa93e4e97d69e9833c02753cfc0333a0565226dc8bb7da97",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/mari-context-attacks.png",
+      "bytes": 1205053,
+      "sha256": "90c6160c3a5e46ae7c937315e6957664631461488038679383d1fb26b7295751",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/andre-context-attacks.png",
+      "bytes": 2018555,
+      "sha256": "29079effd05ed5fb6aeb533390175edbd65e8a78194f62bd2e04590f44314413",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/vorath-context-attacks.png",
+      "bytes": 1040799,
+      "sha256": "4172025a483ae1a9dc96a81781125b0dac26310645b187621c5309bb471f1de9",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/mari-pentagram-blast.png",
+      "bytes": 1533160,
+      "sha256": "27de9a5bcd1964020c3213e1a7f7167e7c0cd2415a582ed7d9dc5343b9f94fbf",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/vorath-fire-blast.png",
+      "bytes": 1387646,
+      "sha256": "9e326dd8a90a2d8e8d8f95fb269048c31a221546204c193241e1b3a8d4451af5",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-sonic-blast.png",
+      "bytes": 1970314,
+      "sha256": "eedc89faa88c32ced3a725f85e49bef9794acfbf1f3dcffa8a5c30b64442edde",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/andre-tsunami.png",
+      "bytes": 2231652,
+      "sha256": "4382650178fc660a2fe0c4a305b1df4b5de0c3bd50cd1936be19771a57158163",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/plaza.png",
+      "bytes": 2798785,
+      "sha256": "59c04e0df026d3060eb286abe386fbdaf43493e6128fd3ad6ff9caf896777970",
+      "reason": "CSS dependency"
+    },
+    {
+      "path": "assets/hospital.png",
+      "bytes": 3472817,
+      "sha256": "8e959efb167c22389523e7ce6615df482c0d47c248ef5b7eece0116bc597114e",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/street.png",
+      "bytes": 2674891,
+      "sha256": "6169ee43ab8af33c5f4945fc48770dcd20fdecfd24cb82be70192a6f142cd854",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-original.png",
+      "bytes": 1681928,
+      "sha256": "06eb6efa017b19ba1ec174f399276e7d586c94b8d0f1d52f6d440b2e27dc02eb",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-select.png",
+      "bytes": 99592,
+      "sha256": "963ad8eef0d66db9e0950385e469492bd0e0f2f06f36e5aef8a02fb261919c71",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/vorath-original.png",
+      "bytes": 1937358,
+      "sha256": "236f19f99afc26a8582c2c8cf62c1cddb890da3c023c2299886f3674210ed1dd",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/andre-original.png",
+      "bytes": 2471232,
+      "sha256": "b4d04c488bc20b8eaecd2e71f0c1ec04b2506a4a66ca77c55360e19108de60d7",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/roster-original.png",
+      "bytes": 2589062,
+      "sha256": "bcf7845762c4087afeb5c32da13100daa32ed622b7840c4366c51e90e8fc9d01",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/mari-original.png",
+      "bytes": 2247528,
+      "sha256": "7a879fccff3ac78250cfdbe145d35fcac453767d9eceed78f7439ca41be9be12",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-hit-original.png",
+      "bytes": 1658682,
+      "sha256": "57112e28cb78b07c5dd3c8d6357cee4d1d829b471e0032851f5bc41e925466ad",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/battle-original.png",
+      "bytes": 2685574,
+      "sha256": "b0d8ff477b8cd4df4b7bc7711aa748a1fd1660f0e8cef570c9948e3779ed17cf",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-roundhouse.png",
+      "bytes": 794706,
+      "sha256": "39a20408a548ef4461fed27d318ae275d8d52e024d52bae6cb5e6a0cbf91235a",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-roundhouse-v3.png",
+      "bytes": 1649964,
+      "sha256": "5a2eb2df2c7884e84238f4c44aa1c963d4ccc8e1a6868605de331344b1533ba7",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-damage-face-reference.png",
+      "bytes": 932057,
+      "sha256": "9e400cd146880bec115d76b91b26fc2eb9c7b9d502eb9624d3079c748e886c97",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-damage-v2.png",
+      "bytes": 944620,
+      "sha256": "4cd0d0445f1d4f178c1188bd923824dcc897b11830663bc3b935ea5a8004d878",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/mari-damage-v1.png",
+      "bytes": 694782,
+      "sha256": "d56ef789ed5303e03cfbe2623db2db09a9325b877d97d231678209093524cdfc",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/andre-damage-v1.png",
+      "bytes": 1976227,
+      "sha256": "0caf08d7a92886f180417a2609335d85a6569aded088653b4dded10a47a8a878",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/vorath-damage-v1.png",
+      "bytes": 926643,
+      "sha256": "49f38c47d0a264926b1091aa770739b181f1f554e4b38360f7a478a0855da2c2",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-jump-v2.png",
+      "bytes": 1731437,
+      "sha256": "505b54a9ba34fd34f19ce6c0c88989f0ed65c0a04f9f659da7425b702eeb2f2c",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/mari-jump-v2.png",
+      "bytes": 1494183,
+      "sha256": "5c9f32acaaf17ea0b07579f673cd43abc20e6550ec4fbb86acbac14234cc2c22",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/andre-jump-v2.png",
+      "bytes": 1798874,
+      "sha256": "f6c6f78614129fd105dd0656c256f2bae9c6f087c821b3a23b2d27398bf9589b",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/vorath-jump-v2.png",
+      "bytes": 1803285,
+      "sha256": "40321895a45b2d02b99736575f8d48e1ea5d2e4d85099fd56bfdb3d8b0f9ba3b",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-movement.png",
+      "bytes": 675826,
+      "sha256": "c5fdd32be011cb66796b6bd854a1c15184400c2d8bf7108f774717792ad99da5",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/mari-movement.png",
+      "bytes": 1580257,
+      "sha256": "32967d1771a26e81e3eaf31ee9a9af85f1a1426c94fd3f385ad4fb55202e6146",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/andre-movement.png",
+      "bytes": 1783671,
+      "sha256": "6a0e0a3e47405f31176d1654d7d5f12fe8d16cbe7564a79b571c2081b45cfa9f",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/vorath-movement.png",
+      "bytes": 1533482,
+      "sha256": "f7c966d8fc345233a6abb27786cd56de79f4320afd24ace700ed4be257042d5e",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/vorath-punch-right-drawn.png",
+      "bytes": 934320,
+      "sha256": "3d7285885b9b934fb70d759dc558067a3af6e856a36847d4cb9f651c1444935d",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/vorath-punch-left-drawn.png",
+      "bytes": 1274010,
+      "sha256": "ad40caec9e2bafd49535de5b4ef5bda74ec3698537904e5adce54b13274332c3",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-punch-drawn.png",
+      "bytes": 784892,
+      "sha256": "39fc44883fd5db7bf882a7c440d80ae470127ad0fd02dce8557af6fad38b1a0c",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/gudeco-kick-drawn.png",
+      "bytes": 695172,
+      "sha256": "b180cd1155e983bcc0f404c6854b26c18551246a38b6e7fbbd5a534672dbf27b",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/mari-punch-drawn.png",
+      "bytes": 706774,
+      "sha256": "4eb80550fa1ae77cc9e6d2965dbca4fa0c52bac1289c6cb729f1bc9b0c1b2112",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/mari-kick-drawn.png",
+      "bytes": 658058,
+      "sha256": "1e8135a8dd7dc7d892a8b725b53f84545cede19655d81a1bb9f990a1441fdf46",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/andre-punch-drawn.png",
+      "bytes": 875563,
+      "sha256": "9bfe588d0ceeb6be3b3b37e14313ffa6163e7bbb41c2936bc36113f330a82137",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/andre-kick-drawn.png",
+      "bytes": 875815,
+      "sha256": "05aef3fd165ff0690e3d0f1528414797f4bf446de8c439977f7a868c63977d9b",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/vorath-kick-drawn.png",
+      "bytes": 953471,
+      "sha256": "5882b09c736fd8384d81531ea5d85323098179529a2cf79719cedbe19fc20108",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/audio/perkons-kick.wav",
+      "bytes": 115250,
+      "sha256": "511ea861b17f28e18c166133ac850b11d43610808c76c8c3d1edb771397ac35c",
+      "reason": "Active synth-mode sample preload / sound effects"
+    },
+    {
+      "path": "assets/audio/perkons-impact.wav",
+      "bytes": 143561,
+      "sha256": "0a786be9a1f42ec8910a5f0fc8bf39007a463638bbc476d9ae2eb839dce7383c",
+      "reason": "Active synth-mode sample preload / sound effects"
+    },
+    {
+      "path": "assets/audio/perkons-snare.wav",
+      "bytes": 65536,
+      "sha256": "46bb2479778088b5ef5c0e6e32b6dfd3e863b250620fe5777ee45ff75a754645",
+      "reason": "Active synth-mode sample preload / sound effects"
+    },
+    {
+      "path": "assets/audio/perkons-hat.wav",
+      "bytes": 65536,
+      "sha256": "4b73ce7c25889eeefdf9d69d0ff0ba172baa89e0ef2cbce02006379530ad99f9",
+      "reason": "Active synth-mode sample preload / sound effects"
+    },
+    {
+      "path": "assets/audio/perkons-gong.wav",
+      "bytes": 302576,
+      "sha256": "98fcbb9c2c201697057c51e8b06a7612f6f5491a629500f685be6aefbf200430",
+      "reason": "Active synth-mode sample preload / sound effects"
+    },
+    {
+      "path": "assets/audio/prc-1.mp3",
+      "bytes": 35596,
+      "sha256": "b4d7e70c366e37892deca407837da996f1e570f67f880d4316fffafdf8a2835c",
+      "reason": "Active synth-mode sample preload / sound effects"
+    },
+    {
+      "path": "assets/audio/prc-3.mp3",
+      "bytes": 35596,
+      "sha256": "a3420f3c175734725c666e935a033fec5ac46003401df1fb1662800444522c47",
+      "reason": "Active synth-mode sample preload / sound effects"
+    },
+    {
+      "path": "assets/audio/prc-8.mp3",
+      "bytes": 35596,
+      "sha256": "b1a9bc8caa2f20ede0f44ca6aa520ed4def201aba71a1a7032e61d55c84d09c6",
+      "reason": "Active synth-mode sample preload / sound effects"
+    },
+    {
+      "path": "assets/audio/alice-cellamb.mp3",
+      "bytes": 357842,
+      "sha256": "a8624618c4e74108ed230130cbfc8984a584d0db2f38bcea90646b26378fcae1",
+      "reason": "Active synth-mode sample preload / sound effects"
+    },
+    {
+      "path": "assets/audio/alice-rasp.mp3",
+      "bytes": 62762,
+      "sha256": "1168308b772cc3313d9deab58be693fa6f952c8923826ea318d4a6b59bdb1b49",
+      "reason": "Active synth-mode sample preload / sound effects"
+    },
+    {
+      "path": "assets/audio/alice-cellamb2.mp3",
+      "bytes": 318971,
+      "sha256": "5aba2fbee7d34e7d16f973b4419bdb020165d073ce5e48c4094df9be83b24f52",
+      "reason": "Active synth-mode sample preload / sound effects"
+    },
+    {
+      "path": "assets/audio/alice-pianofade.mp3",
+      "bytes": 150534,
+      "sha256": "1d240dd1d0d4c4489596101df2e56d5811fbf09d69317baae612a30131b1e7e5",
+      "reason": "Active synth-mode sample preload / sound effects"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3183,
+      "sha256": "e5884f6b3d7e691d4e242dcfe6647e831abb29316ba94949414f9cc96098c2b4",
+      "reason": "Publishing instructions"
+    },
+    {
+      "path": ".nojekyll",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reason": "Serve static files without Jekyll processing"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 120,
+      "sha256": "287caeffe18434ed09e35abf00325736f35a05262c54e8ffd97d74454fda2c27",
+      "reason": "Exclude local/editor files; keep required audio samples"
+    }
+  ]
+}
