@@ -3,14 +3,14 @@
   "files": [
     {
       "path": "game.js",
-      "bytes": 19898,
-      "sha256": "944d825a74c6383886da556be8a86add4005ef77e0e42af3f7c2b0a3e12ab299",
+      "bytes": 20806,
+      "sha256": "05d15430430ac5a06333b455247960c7e8ff31fc1e91d05744c7aa888cc37126",
       "reason": "Runtime JavaScript module"
     },
     {
       "path": "audio-engine.js",
-      "bytes": 44782,
-      "sha256": "5fd9feab4788781b6fe1d9cf6a529dfabe5bca160c20841c3940730013699ad7",
+      "bytes": 44910,
+      "sha256": "c4d00d1fd9ac859d2581c53e7c395ea425f8f725a4e63efed400bcad6dbfb501",
       "reason": "Runtime JavaScript module"
     },
     {
@@ -21,8 +21,8 @@
     },
     {
       "path": "synth-music.js",
-      "bytes": 50864,
-      "sha256": "ed10557513c084bd4de6c60887c6d428290181390866b13adced45d78f4229d3",
+      "bytes": 59555,
+      "sha256": "c2578ab01c8b32707fa698c6f71dd75e27c5e079fe7c89e318a43d167db5f7ac",
       "reason": "Runtime JavaScript module"
     },
     {
@@ -39,8 +39,8 @@
     },
     {
       "path": "art.js",
-      "bytes": 24593,
-      "sha256": "4e494f8436d9b4a9536b398e6153361a167506ff2d9e4befc205e55ac2a78ce4",
+      "bytes": 24636,
+      "sha256": "ba1652e59a673e11e8020e3740c7736f2eb4bbf43b0c7846cf7ce310ccdd4f09",
       "reason": "Runtime JavaScript module"
     },
     {
@@ -69,8 +69,8 @@
     },
     {
       "path": "combat.js",
-      "bytes": 18622,
-      "sha256": "36f3e5dbc461deb7107f1af79ac8a1e46f9cf02200bf07757d3a829abe358830",
+      "bytes": 19820,
+      "sha256": "d6f31320c49f41ccafc04475ca5c3741d397a656dbac38bcd6a3a457bcec0696",
       "reason": "Runtime JavaScript module"
     },
     {
@@ -93,14 +93,14 @@
     },
     {
       "path": "feedback-art.js",
-      "bytes": 4166,
-      "sha256": "6f19f7eb4c7448f0523e64535cb264d50d310ae7c763b3fe396bd09e8d63d7d3",
+      "bytes": 4828,
+      "sha256": "9c0e5adffd6bf279d3335dbcb6570044c7419e1d54c1d8ae7b0a090bb20f55c5",
       "reason": "Runtime JavaScript module"
     },
     {
       "path": "index.html",
-      "bytes": 5463,
-      "sha256": "43e356d249b2f1cb19089360ba49708c46f334d38db9978e39a015ac59fc56e2",
+      "bytes": 5434,
+      "sha256": "1786a6e80484ef50e152af2b649ae55372642d16aa6af6f995a0df45d36a96f1",
       "reason": "Web entry point"
     },
     {
@@ -113,6 +113,18 @@
       "path": "assets/andre-source-variations.png",
       "bytes": 976059,
       "sha256": "7ee82659fa3bf1ae5dfbdf8df0bbc28c97e55170c53e74556c819f26ad34129d",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/mari-cat-black-exit.png",
+      "bytes": 1254135,
+      "sha256": "f735e2afc26c27ad0df5d159fcaaaceeda79c32ada5bb3ab87ae5541b89b777c",
+      "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/mari-cat-white-run.png",
+      "bytes": 1521145,
+      "sha256": "693d53bf7b27652faf71ab2f6e357146ae29d5984d80bacbdf02e6bf9ceb5996",
       "reason": "Requested by loadArt"
     },
     {
@@ -504,6 +516,12 @@
       "bytes": 953471,
       "sha256": "5882b09c736fd8384d81531ea5d85323098179529a2cf79719cedbe19fc20108",
       "reason": "Requested by loadArt"
+    },
+    {
+      "path": "assets/hospital-preview.png",
+      "bytes": 1843927,
+      "sha256": "4e5546f5809b37f1ad382109732bcd528c569f6e1be502de263e7d13fa83fe86",
+      "reason": "Hospital stage-selection preview"
     },
     {
       "path": "assets/audio/perkons-kick.wav",

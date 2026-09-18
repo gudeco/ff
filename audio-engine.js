@@ -243,7 +243,7 @@ filter.frequency.setValueAtTime(cutoff,t);filter.frequency.exponentialRampToValu
   if(texture.gate){const peak=gain*level*2.2;g.gain.cancelScheduledValues(t);g.gain.setValueAtTime(.0001,t);for(let at=t;at<t+d-.06;at+=texture.gate){g.gain.linearRampToValueAtTime(peak,at+.02);g.gain.linearRampToValueAtTime(peak*.2,Math.min(at+texture.gate*.8,t+d-.02));}g.gain.linearRampToValueAtTime(.0001,t+d);}
   const voice={music,stop:(at)=>{const end=Math.max(c.currentTime,at);g.gain.cancelScheduledValues(end);g.gain.setTargetAtTime(.0001,end,.006);try{source.stop(end+.035);}catch{}}};
   if(music&&drum)slot=String(slot)+':'+instrument;
-  if(music){const old=this.slots.get(slot);if(old)old.stop(t);this.slots.set(slot,voice);}else{const fx=[...this.voices].filter(v=>!v.music);if(fx.length>=16)fx[0].stop(c.currentTime);}
+  if(music){this.slots.set(slot,voice);}else{const fx=[...this.voices].filter(v=>!v.music);if(fx.length>=16)fx[0].stop(c.currentTime);}
   this.voices.add(voice);source.onended=()=>{source.disconnect();for(const node of extras)node.disconnect();filter.disconnect();drive?.disconnect();g.disconnect();stereo.disconnect();this.voices.delete(voice);if(this.slots.get(slot)===voice)this.slots.delete(slot);};source.start(t,sample&&ambient?Math.min(sample.duration*.3,(freq%7)*.07):0);source.stop(t+d+.04);
  }
  effect(e,id='gudeco',pan=0){if(!this.enabled||this.paused||!this.ctx||this.ctx.state!=='running')return;

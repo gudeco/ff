@@ -3,7 +3,7 @@ export function synthNote(engine,event,time){
  const [offset,kind,pitch,length,velocity,pan,lane]=event,c=engine.ctx;
  const squareDouble=event[9]==='square-doubled';
  const rhodes=kind==='organ'&&((lane>=1400&&lane<=1407)||lane===1456||lane===1486||lane===1458||lane===1481||lane===1482||lane===1487||lane===1488||lane===1489||lane===1491||lane===1498||lane===1510);
- if([...engine.voices].filter(v=>v.synth).length>=(kind==='bassline'?36:30))return;
+ // Let every scheduled music note finish, including clusters carried across parts.
  const drum=['kick','snare','hat','air'].includes(kind),duration=Math.max(.015,Math.min(length||.2,kind==='shepard'?8:kind==='lahopterix'?(lane===1596?16:8):kind==='brass'?1.5:kind==='harp'?.8:kind==='bell'?.65:kind==='ride'?.65:kind==='lead'?8:kind==='polysynth'?6:kind==='cymbal'?.7:kind==='tom'?.28:kind==='organ'?(lane===1458||lane===1482||lane===1488||lane===1491||((lane===1456||lane===1486)&&event[7]===1)?12:5.2):kind==='pad'?1.5:kind==='metal'?.65:kind==='bassline'?(lane===1497?2:lane===1507?1.2:lane===1201?1.8:lane===1000?1.2:.42):kind==='bass'?.28:kind==='kick'?.32:.18));
  const gain=c.createGain(),filter=c.createBiquadFilter(),panner=c.createStereoPanner();
  const freq=Math.max(28,Math.min(1000,(kind==='kick'?55:kind==='bassline'?55:kind==='bass'?65:kind==='metal'?170:110)*2**((Array.isArray(pitch)?pitch[0]:pitch)/12)));
@@ -542,7 +542,7 @@ export function arrangeStreet(source){
     const gate=4*step;
     events.push([dest+(bar*16+slot)*step,'bassline',-2,gate+.20,.32,0,1497,{gate}]);
    }
-   if(power&&bar===1)events.push([dest+bar*16*step,'organ',[34,40],16*step,.12,.08,1498]);
+   if(power&&bar===1)events.push([dest+bar*16*step,'organ',[34,40],16*step,.15,.08,1498]);
    if(part==='A'&&bar===0)for(const slot of [0,4]){
     const gate=4*step;
     events.push([dest+slot*step,'bassline',-2,gate+.20,.32,0,1497,{gate}]);

@@ -16,6 +16,7 @@ export const ATTACKS={
  special2:{cost:42,windup:.29,duration:.67,cooldown:1.25}
 };
 // Times are custom 60 Hz-style timings for this roster, not SFII frame data.
+export const attackCost=(id,kind)=>id==='mari'&&kind==='special2'?36:ATTACKS[kind]?.cost;
 export const HIT_TIMING={punch:{stun:14/60,stop:6/60,block:10/60},kick:{stun:22/60,stop:9/60,block:16/60},melee:{stun:20/60,stop:8/60,block:14/60}};
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 export class Match {
@@ -23,10 +24,12 @@ export class Match {
  newRound(){this.fighters=this.ids.map((id,i)=>({id,x:i?930:350,y:GROUND,vy:0,facing:i?-1:1,hp:100,energy:0,stun:0,invuln:0,cooldown:0,attack:null,nextPunchArm:'right',guard:false,crouch:false,crouchTime:0,landing:0,airborne:false,preJump:0,jumpVX:0,walk:false,poison:0,poisonTick:0,combo:0,comboTime:0}));this.projectiles=[];this.casts=new Map();this.time=90;this.phase='intro';this.phaseTime=2;this.hitstop=0;this.aiTime=0;this.aiInput={};this.events.push({type:'round',round:this.round});}
  emit(type,data={}){this.events.push({type,...data});}
  consumeEvents(){return this.events.splice(0);}
+ hasActiveCats(i){return this.projectiles.some(p=>p.owner===i&&(p.type==='cat'||p.type==='feedbackCat')&&p.life>0&&p.x>-150&&p.x<1430);}
  gainSpecial(i,amount){const f=this.fighters[i],gained=Math.min(amount,100-f.energy);f.energy+=gained;if(gained>0)this.emit('evade',{i,amount:gained,x:f.x,y:f.y-ROSTER[f.id].h-30});}
- startAttack(i,kind){const f=this.fighters[i],e=this.fighters[1-i],spec=ATTACKS[kind],normal=kind==='punch'||kind==='kick';if(!spec||f.hp<=0||f.down||f.stun>0||f.cooldown>0||f.attack||(f.guard&&!(f.crouch&&normal))||f.preJump>0||f.landing>.04||this.phase!=='fight'||f.energy<spec.cost)return false;
+ startAttack(i,kind){const f=this.fighters[i],e=this.fighters[1-i],spec=ATTACKS[kind],normal=kind==='punch'||kind==='kick';if(!spec||f.hp<=0||f.down||f.stun>0||f.cooldown>0||f.attack||(f.guard&&!(f.crouch&&normal))||f.preJump>0||f.landing>.04||this.phase!=='fight'||f.energy<attackCost(f.id,kind))return false;
  const reach=(spec.reach??ROSTER[f.id].reach)+32;
- f.energy-=spec.cost;f.attack={kind,time:0,fired:false,aerial:f.airborne,posture:f.airborne?'air':f.crouch&&normal?'crouch':'stand',targetX:e.x,targetY:e.y,threat:Math.abs(e.x-f.x)<reach+90&&(e.x-f.x)*f.facing>-15&&Math.abs(e.y-f.y)<450};f.guard=false;
+ if(kind==='special2'&&(f.id==='mari'||f.id==='gudeco')&&this.hasActiveCats(i))return false;
+ f.energy-=attackCost(f.id,kind);f.attack={kind,time:0,fired:false,aerial:f.airborne,posture:f.airborne?'air':f.crouch&&normal?'crouch':'stand',targetX:e.x,targetY:e.y,threat:Math.abs(e.x-f.x)<reach+90&&(e.x-f.x)*f.facing>-15&&Math.abs(e.y-f.y)<450};f.guard=false;
  // Advance only on an accepted punch. Store the arm on this attack so camera
  // facing, hitstop, interrupted recovery and repeated input cannot change it.
  if(f.id==='vorath'&&kind==='punch'){f.attack.punchArm=f.nextPunchArm;f.nextPunchArm=f.nextPunchArm==='right'?'left':'right';}
@@ -46,8 +49,8 @@ export class Match {
   this.emit('swing',{i,x:f.x+f.facing*(spec.reach??90),y:f.y-(highKick?ROSTER[f.id].h*.82:kind==='kick'?90:160),id:f.id,kind});return;
  }
  const first=kind==='special1',cast=this.newCast(i),shot=(type,extra)=>this.spawn(i,type,{...extra,cast});
- if(f.id==='gudeco'){if(first)shot('sound',{radius:44,damage:15,vx:f.facing*490});else shot('feedbackCat',{x:f.x+f.facing*82,y:GROUND-35,vx:0,direction:f.facing,radius:38,damage:24,life:4.8,state:'summon',stateTime:0,walkDistance:0});}
- if(f.id==='mari'){if(first)shot('pentagram',{radius:44,damage:18,vx:f.facing*325});else for(let n=0;n<2;n++)shot('cat',{x:f.x+f.facing*(35+n*40),y:GROUND-20,delay:n*.28,radius:24,damage:12,vx:f.facing*(240+n*30),white:n===0,life:5.2});}
+ if(f.id==='gudeco'){if(first)shot('sound',{radius:44,damage:15,vx:f.facing*490});else shot('feedbackCat',{x:f.x+f.facing*82,y:GROUND-35,vx:0,direction:f.facing,radius:38,damage:24,life:Infinity,state:'summon',stateTime:0,walkDistance:0});}
+ if(f.id==='mari'){if(first)shot('pentagram',{radius:44,damage:18,vx:f.facing*325});else for(let n=0;n<2;n++)shot('cat',{x:f.x+f.facing*(35+n*40),y:GROUND-20,delay:n*.28,radius:24,damage:12,vx:f.facing*(240+n*30),white:n===0,life:Infinity});}
  if(f.id==='andre'){if(first){shot('wave',{y:GROUND-180,radius:180,damage:20,vx:f.facing*1250,life:1.0});this.emit('flood',{x:f.x+f.facing*65,direction:f.facing});}else shot('paper',{x:e.x,y:GROUND,vx:0,vy:0,radius:90,damage:5,delay:0,life:1.9,nextPulse:.22});}
  if(f.id==='vorath'){if(first)for(let n=0;n<4;n++)shot('fire',{originX:f.x+f.facing*55,x:f.x+f.facing*55,y:f.y-120,vx:f.facing*(330+n*20),radius:42,damage:6,delay:n*.09,life:.72});else shot('acid',{y:f.y-255,vx:f.facing*410,vy:-10,radius:29,damage:15,gravity:240,life:2.8});}
  }
@@ -59,15 +62,26 @@ export class Match {
   if(p.state==='walk'){
    p.x+=p.vx*dt;p.walkDistance=(p.walkDistance||0)+Math.abs(p.vx*dt);
    const ahead=(target.x-p.x)*direction;
-   if(!p.spent&&!target.down&&ahead>=-30&&ahead<65){cast.threat=true;p.state='claw';p.stateTime=0;}
+   if(p.waitForEncounter&&(ahead< -30||ahead>=65||target.y<GROUND-70))p.waitForEncounter=false;
+   if(!p.spent&&!p.waitForEncounter&&!target.down&&ahead>=-30&&ahead<65){cast.threat=true;p.state='claw';p.stateTime=0;p.attempted=false;}
   }else if(p.state==='claw'){
-   if(!p.spent&&p.stateTime>=.12){p.spent=true;
+   if(!p.attempted&&!p.spent&&p.stateTime>=.12){p.attempted=true;
     if(!target.down&&Math.abs(p.x-target.x)<100&&p.y+p.radius>target.y-hurtHeight(target)&&p.y-p.radius<target.y){
-     if(this.hurt(1-p.owner,p.damage,p.owner,direction,'cat')){cast.contact=true;this.emit('impact',{typeName:'cat',x:p.x+direction*40,y:p.y});}
+     if(this.hurt(1-p.owner,p.damage,p.owner,direction,'cat')){p.spent=true;cast.contact=true;this.emit('impact',{typeName:'cat',x:p.x+direction*40,y:p.y});}
     }
    }
    if(p.stateTime>=.3){p.state='recover';p.stateTime=0;}
-  }else if(p.state==='recover'&&p.stateTime>=.18){p.state='walk';p.stateTime=0;}
+  }else if(p.state==='recover'&&p.stateTime>=.18){
+   if(!p.spent){p.state='walk';p.stateTime=0;p.waitForEncounter=true;return;}
+   p.state=p.white?'run':'jump';p.stateTime=0;p.runDistance=0;
+   p.vx=direction*(p.white?310:490);p.vy=p.white?0:-430;p.life=Infinity;
+  }else if(p.state==='jump'||p.state==='run'){
+   p.x+=p.vx*dt;p.runDistance+=Math.abs(p.vx*dt);
+   if(p.state==='jump'){
+    p.vy+=1500*dt;p.y+=p.vy*dt;
+    if(p.y>=GROUND-20){p.y=GROUND-20;p.vy=0;p.state='run';p.stateTime=0;p.runDistance=0;}
+   }
+  }
  }
  advanceFeedbackCat(p,dt){
   p.age+=dt;p.life-=dt;p.stateTime+=dt;
@@ -77,18 +91,19 @@ export class Match {
   if(p.state==='walk'){
    const travel=300*dt;p.x+=p.direction*travel;p.walkDistance+=travel;
    const ahead=(target.x-p.x)*p.direction;
-   if(!target.down&&ahead>=-20&&ahead<110){cast.threat=true;p.state='claw';p.stateTime=0;}
+   if(p.waitForEncounter&&(ahead< -20||ahead>=110||target.y<GROUND-85))p.waitForEncounter=false;
+   if(!p.spent&&!p.waitForEncounter&&!target.down&&ahead>=-20&&ahead<110){cast.threat=true;p.state='claw';p.stateTime=0;p.attempted=false;}
   }else if(p.state==='claw'){
    // Wind-up is visible and avoidable. Contact happens only on the swipe,
-   // once per summon; the cat remains to land and recover after a hit/miss.
-   if(!p.spent&&p.stateTime>=.18){
-    p.spent=true;
+   // Once per encounter: a miss can retry later, a hit or block spends the cat.
+   if(!p.attempted&&!p.spent&&p.stateTime>=.18){
+    p.attempted=true;
     if(!target.down&&distance>=-25&&distance<145&&target.y>GROUND-85&&target.y-hurtHeight(target)<GROUND-20){
-     if(this.hurt(1-p.owner,p.damage,p.owner,p.direction,'feedbackCat')){cast.contact=true;this.emit('impact',{typeName:'feedbackCat',x:p.x+p.direction*65,y:GROUND-65});}
+     if(this.hurt(1-p.owner,p.damage,p.owner,p.direction,'feedbackCat')){p.spent=true;cast.contact=true;this.emit('impact',{typeName:'feedbackCat',x:p.x+p.direction*65,y:GROUND-65});}
     }
    }
    if(p.stateTime>=.42){p.state='recover';p.stateTime=0;}
-  }else if(p.state==='recover'&&p.stateTime>=.24){p.state='run';p.stateTime=0;p.runDistance=0;p.life=4;}
+  }else if(p.state==='recover'&&p.stateTime>=.24){p.state=p.spent?'run':'walk';p.stateTime=0;p.runDistance=0;p.waitForEncounter=!p.spent;}
   else if(p.state==='run'){const travel=620*dt;p.x+=p.direction*travel;p.runDistance+=travel;}
  }
  advanceReaction(f,dt){
@@ -125,7 +140,7 @@ export class Match {
  const input={move:d>115?Math.sign(enemy.x-me.x):d<90?-Math.sign(enemy.x-me.x):0,guard:false};
  if(threat&&r()<(this.difficulty==='easy'?.20:.65)){input.move=-Math.sign(enemy.x-me.x);if(r()<.55)input.jump=true;else if(r()<.25)input.guard=true;}
  if(threat&&r()<.20)input.jump=true;
- if(!threat){if(d<135&&r()<.55)input.punch=true;else if(d<170&&r()<.55)input.kick=true;else if(d<185&&r()<.55)input.melee=true;else if(me.energy>=26&&r()<.4)input.special1=true;else if(me.energy>=42&&r()<.3)input.special2=true;}
+ if(!threat){if(d<135&&r()<.55)input.punch=true;else if(d<170&&r()<.55)input.kick=true;else if(d<185&&r()<.55)input.melee=true;else if(me.energy>=26&&r()<.4)input.special1=true;else if(me.energy>=attackCost(me.id,'special2')&&r()<.3)input.special2=true;}
  if(me.y>=GROUND&&(me.x<155||me.x>1125)&&d<230&&r()<.55){input.jump=true;input.move=Math.sign(enemy.x-me.x);input.guard=false;input.punch=false;input.kick=false;input.melee=false;}
  if(me.airborne){input.guard=false;if(me.vy>0&&d<150&&r()<.55)input.kick=true;}
  if(this.difficulty==='easy'&&r()<.4)return this.aiInput={};return this.aiInput=input;}
