@@ -139,7 +139,13 @@ export class SoundEngine{
   if(names.length>1)await new Promise(resolve=>setTimeout(resolve,0));
   }
  }
- duck(bus,t,depth,release){const p=bus.gain;p.cancelScheduledValues(t);p.setValueAtTime(1,t);p.linearRampToValueAtTime(depth,t+.007);p.setTargetAtTime(1,t+.022,release);}
+ duck(bus,t,depth,release){
+  const p=bus.gain;
+  // Preserve the current envelope during rapid kicks instead of jumping back to unity.
+  if(p.cancelAndHoldAtTime)p.cancelAndHoldAtTime(t);
+  else{const held=p.value;p.cancelScheduledValues(t);p.setValueAtTime(held,t);}
+  p.linearRampToValueAtTime(depth,t+.007);p.setTargetAtTime(1,t+.022,release);
+ }
  async setMusicMode(mode){
   this.musicMode=mode==='recorded'?'recorded':'synth';this.synthClock=null;
   if(this.ctx){for(const v of this.voices)if(v.music)v.stop(this.ctx.currentTime);this.slots.clear();}
