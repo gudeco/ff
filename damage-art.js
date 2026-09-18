@@ -3,8 +3,8 @@ import {damageLayout} from './damage-layout.js';
 import {drawMovement} from './normal-attacks.js';
 
 const damageCache=new Map();
-// Only exposed faces are taken from the reference edit. All other pixels,
-// including hair, neck, poses and equipment, stay from the existing atlas.
+// Legacy face overlay retained for comparison tools only. Runtime frames now
+// use the manually edited damage-v2 sheet directly, including its faces.
 export const gudecoFaceMasks=[null,
  {dx:17,points:[[665,59],[678,55],[687,64],[694,77],[687,87],[674,91],[663,81],[660,69]]},
  {dx:0,points:[[358,588],[372,587],[384,598],[376,611],[365,614],[354,604]]},
@@ -30,7 +30,7 @@ function damageBounds(image){
 function damageFrames(id){
  if(damageCache.has(id))return damageCache.get(id);
  const source=sprites[id][id==='gudeco'?1:0],original=damageBounds(source.image),atlas=images[id+'-damage-'+(id==='gudeco'?'v2':'v1')];
- const frames=damageLayout[id].map(([x,y,w,h],i)=>{const image=document.createElement('canvas');image.width=w;image.height=h;const ctx=image.getContext('2d');ctx.drawImage(atlas,x,y,w,h,0,0,w,h);const bounds=damageBounds(image);if(id==='gudeco')applyGudecoFace(ctx,i,x,y);return {image,...bounds};});
+ const frames=damageLayout[id].map(([x,y,w,h])=>{const image=document.createElement('canvas');image.width=w;image.height=h;const ctx=image.getContext('2d');ctx.drawImage(atlas,x,y,w,h,0,0,w,h);const bounds=damageBounds(image);return {image,...bounds};});
  const scale=(source.feet-original.top)*source.scale/(frames[0].bottom-frames[0].top);
  const footOffset=(original.foot-source.pivot)*source.scale;
  frames.forEach((f,i)=>{f.scale=scale;f.pivot=i<4?f.foot-footOffset/scale:f.image.width/2;f.feet=f.bottom;});
