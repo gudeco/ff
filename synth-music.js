@@ -5,11 +5,11 @@ export function synthNote(engine,event,time){
  const cyber=kind.startsWith('cyber');
  if(kind==='mesotonya')return synthMesotonya(engine,event,time);
  if(kind==='acidbass')return synthAcidBass(engine,event,time);
- if(kind==='thanathoa')return synthThanathoa(engine,event,time);
+ if(kind==='thanathoa'||kind==='vstdefault')return synthThanathoa(engine,event,time);
  const squareDouble=event[9]==='square-doubled';
  const underpassCrash=lane===1701&&kind==='hat'&&event[7]?.articulation==='crash-hat';
  const underpassLowTom=lane===1701&&kind==='tom'&&event[7]?.articulation==='low-tom';
- const rhodes=kind==='organ'&&((lane>=1400&&lane<=1407)||lane===1456||lane===1486||lane===1458||lane===1481||lane===1482||lane===1487||lane===1488||lane===1489||lane===1491||lane===1498||lane===1510);
+ const rhodes=kind==='organ'&&((lane===1707&&event[7]?.rhodesiaSwell)||(lane>=1400&&lane<=1407)||lane===1456||lane===1486||lane===1458||lane===1481||lane===1482||lane===1487||lane===1488||lane===1489||lane===1491||lane===1498||lane===1510);
  // Let every scheduled music note finish, including clusters carried across parts.
  const drum=['kick','snare','hat','air'].includes(kind),duration=Math.max(.015,Math.min(length||.2,cyber?4:underpassCrash?2.2:underpassLowTom?.6:kind==='jazzsax'?3:kind==='jazzbass'?1.4:kind==='shepard'?8:kind==='lahopterix'?(lane===1596?16:8):kind==='brass'?1.5:kind==='harp'?.8:kind==='bell'?.65:kind==='ride'?.65:kind==='lead'?8:kind==='polysynth'?6:kind==='cymbal'?.7:kind==='tom'?.28:kind==='organ'?(lane===1458||lane===1482||lane===1488||lane===1491||((lane===1456||lane===1486)&&event[7]===1)?12:5.2):kind==='pad'?1.5:kind==='metal'?.65:kind==='bassline'?(lane===1497?2:lane===1507?1.2:lane===1201?1.8:lane===1000?1.2:.42):kind==='bass'?.28:kind==='kick'?.32:.18));
  const gain=c.createGain(),filter=c.createBiquadFilter(),panner=c.createStereoPanner();
@@ -17,12 +17,17 @@ export function synthNote(engine,event,time){
  // Underpass voices at silence so that first sample cannot escape at unity.
  if(lane>=1700&&lane<=1705)gain.gain.value=0;
  const freq=Math.max(28,Math.min(1000,(kind==='kick'?55:kind==='bassline'?55:kind==='bass'?65:kind==='metal'?170:110)*2**((Array.isArray(pitch)?pitch[0]:pitch)/12)));
- filter.type=kind==='snare'||kind==='hat'||kind==='cymbal'?'highpass':'lowpass';filter.frequency.value=kind==='cymbal'?1900:kind==='tom'?1100:kind==='hat'?3000:kind==='snare'?700:kind==='bassline'?750:kind==='pad'?900:kind==='metal'?2200:kind==='kick'?1000:1800;
+ filter.type=kind==='snare'||kind==='hat'||kind==='cymbal'?'highpass':'lowpass';filter.frequency.value=kind==='cymbal'?1900:kind==='tom'?1100:kind==='hat'?(underpassCrash?(event[7].hatCutoff??3000):3000):kind==='snare'?700:kind==='bassline'?750:kind==='pad'?900:kind==='metal'?2200:kind==='kick'?1000:1800;
  panner.pan.value=kind==='kick'||kind==='bass'||kind==='bassline'?0:Math.max(-.65,Math.min(.65,pan+(kind==='pad'?.25*Math.sin(lane*2.4):kind==='hat'?.3:kind==='metal'?-.22:0)));
  if(lane===1531){panner.pan.setValueAtTime(pan,time);panner.pan.linearRampToValueAtTime(-pan,time+duration);}
  const level=({cyberarp:.048,cyberbass:.13,cyberpad:.055,cyberlead:.075,cyberpulse:.055,jazzsax:.11,jazzbass:.10,shepard:.010,lahopterix:.065,brass:.085,harp:.028,kick:.36,snare:.12,hat:.04,tom:.19,cymbal:.065,ride:.065,bell:.095,metal:.10,bass:.12,bassline:.34,organ:.065,polysynth:.12,lead:.115,pad:.055,air:.04}[kind]||.06)*Math.min(1.2,velocity)*(squareDouble&&kind==='bassline'?.90:1)*(kind==='jazzsax'&&lane===1700?10**(-16/20):1)*(kind==='lead'?[1,1.8,1.45,1.9][event[7]??0]:1);
  gain.gain.setValueAtTime(0,time);
- if(kind==='cyberarp'){
+ if(kind==='cyberarp'&&event[7]?.sustainFade){
+  gain.gain.linearRampToValueAtTime(level,time+(event[7]?.swellIn?duration*.4:.025));
+  gain.gain.setValueAtTime(level*.9,time+(event[7]?.clusterFadeAt!==undefined?event[7].clusterFadeAt-offset:duration*(event[7]?.swellIn?.5:.3)));
+  gain.gain.exponentialRampToValueAtTime(.0001,time+duration-.02);
+  gain.gain.linearRampToValueAtTime(0,time+duration);
+ }else if(kind==='cyberarp'){
   gain.gain.linearRampToValueAtTime(level,time+.006);
   gain.gain.exponentialRampToValueAtTime(level*.32,time+duration*.65);
   gain.gain.linearRampToValueAtTime(0,time+duration);
@@ -31,7 +36,7 @@ export function synthNote(engine,event,time){
   gain.gain.linearRampToValueAtTime(level,time+Math.min(attack,duration*(event[7]?.fadeIn?.55:.2)));
   gain.gain.linearRampToValueAtTime(level*(kind==='cyberpad'?.85:.60),time+duration*.65);
   gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
- }else if(underpassCrash){
+ }else if(underpassCrash||(lane===1701&&kind==='hat'&&event[7]?.articulation==='open-hat')){
   // The shared noise hi-hat, opened out into a sustained, smoothly fading wash.
   gain.gain.linearRampToValueAtTime(level,time+.006);
   gain.gain.setValueAtTime(level*.88,time+.055);
@@ -61,6 +66,10 @@ export function synthNote(engine,event,time){
   gain.gain.linearRampToValueAtTime(level,time+duration*.30);
   gain.gain.setValueAtTime(level*.8,time+duration*.65);
   gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+ }else if(kind==='lahopterix'&&event[7]?.glideFromBelow){
+  gain.gain.linearRampToValueAtTime(level,time+event[7].glideSeconds);
+  gain.gain.setValueAtTime(level*.85,time+duration*.75);
+  gain.gain.linearRampToValueAtTime(0,time+duration);
  }else if(kind==='lahopterix'&&lane===1703){
   gain.gain.linearRampToValueAtTime(level,time+.06);
   gain.gain.linearRampToValueAtTime(level*.78,time+duration-.16);
@@ -217,13 +226,36 @@ export function synthNote(engine,event,time){
   filter.Q.value=kind==='cyberbass'?1.3:.6;
   filter.frequency.setValueAtTime(kind==='cyberbass'?1050:kind==='cyberpad'?1050:kind==='cyberarp'?2600:2400,time);
   filter.frequency.exponentialRampToValueAtTime(kind==='cyberbass'?180:kind==='cyberpad'?650:kind==='cyberarp'?1100:850,time+duration);
-  if(kind==='cyberarp'&&event[7]?.arpSweep){
-   const sweep=event[7].arpSweep,cutoff=t=>{const u=.5-.5*Math.cos(2*Math.PI*(t-sweep.start)/sweep.period);return sweep.low*(sweep.high/sweep.low)**(sweep.falling?1-u:u);};
+  if(kind==='cyberlead'&&event[7]?.filterBite){
+   filter.Q.value=3.8;filter.frequency.cancelScheduledValues(time);
+   filter.frequency.setValueAtTime(380,time);
+   filter.frequency.exponentialRampToValueAtTime(4600,time+.025);
+   filter.frequency.exponentialRampToValueAtTime(650,time+Math.min(.24,duration*.65));
+   filter.frequency.exponentialRampToValueAtTime(420,time+duration);
+  }
+  if((kind==='cyberarp'&&event[7]?.arpSweep)||(kind==='cyberlead'&&event[7]?.leadSweep)){
+   const sweep=event[7].arpSweep||event[7].leadSweep,cutoff=t=>{const u=.5-.5*Math.cos(2*Math.PI*(t-sweep.start)/sweep.period);return sweep.low*(sweep.high/sweep.low)**(sweep.falling?1-u:u);};
    filter.Q.value=sweep.resonance;filter.frequency.cancelScheduledValues(time);
    const variation=1+.04*Math.sin(offset*7.31),base=cutoff(offset)*variation;
    filter.frequency.setValueAtTime(base*.65,time);
    filter.frequency.exponentialRampToValueAtTime(Math.min(7000,base*sweep.envAmount),time+.009);
    filter.frequency.exponentialRampToValueAtTime(cutoff(offset+duration)*.65,time+duration);
+  }
+  // Share the four-tap return across the rapid arp notes to avoid a delay
+  // network per 32nd note. Buffered repeats continue after each note ends.
+  if(kind==='cyberarp'&&event[7]?.echoTaps===4){
+   const echoKey=event[7].sustainFade?'underpassSwellEcho':'underpassArpEcho';
+   if(!engine[echoKey]){
+    const input=c.createGain();input.gain.value=1;
+    for(let tap=1;tap<=4;tap++){
+     const delay=c.createDelay(4),repeat=c.createGain(),tone=c.createBiquadFilter();
+     delay.delayTime.value=tap*event[7].echoStep;repeat.gain.value=(event[7].echoGain??.35)*(event[7].echoDecay??.55)**(tap-1);
+     tone.type='lowpass';tone.frequency.value=3500/(1+tap*.35);
+     input.connect(delay);delay.connect(tone);tone.connect(repeat);repeat.connect(engine.musicInput||engine.music);
+    }
+    engine[echoKey]=input;
+   }
+   panner.connect(engine[echoKey]);
   }
   // Short, filtered echoes give the melodic voices space without bright bleeps.
   if(kind==='cyberlead'||kind==='cyberpulse'){
@@ -273,10 +305,13 @@ export function synthNote(engine,event,time){
  }
  else if(kind==='lahopterix'){
   // Lahopterix hissata reference: two sines, two saws, soft attack, low-pass and delay.
-  const base=110*2**((pitch+.055)/12);
+  const rising=event[7]?.glideFromBelow;
+  const base=110*2**((pitch+(rising?0:.055))/12);
   for(const [i,[wave,amp]]of [['sine',.151],['sawtooth',.023],['sine',.512],['sawtooth',.626]].entries()){
-   const o=osc(wave,lane===1531?base*2**(-45/1200):lane===1511?base*2**(-2/12):lane===1512?base*2**(2/12):base,amp*.65);
-   if(lane===1703){
+   const o=osc(wave,rising?base*2**(-rising/12):lane===1531?base*2**(-45/1200):lane===1511?base*2**(-2/12):lane===1512?base*2**(2/12):base,amp*.65);
+   if(rising){
+    o.frequency.exponentialRampToValueAtTime(base,time+event[7].glideSeconds);
+   }else if(lane===1703){
     // One uninterrupted oscillator/envelope per reply, with held notes and
     // short portamento ramps into each following target.
     const path=event[7].portamento,glide=event[7].glideSeconds;
@@ -290,7 +325,7 @@ export function synthNote(engine,event,time){
    else if(lane===1483){o.frequency.exponentialRampToValueAtTime(base*2**(1/12),time+duration*.5);o.frequency.exponentialRampToValueAtTime(base,time+duration*.9);}
    else o.frequency.exponentialRampToValueAtTime(base*2**(-2/12),time+duration*.9);
   }
-  filter.frequency.value=lane===1703?2200:lane===1596?2400:lane===1520?1900:lane===1531?2200:608;filter.Q.value=.4;
+  filter.frequency.value=rising?2400:lane===1703?2200:lane===1596?2400:lane===1520?1900:lane===1531?2200:608;filter.Q.value=.4;
   const delay=c.createDelay(1),feedback=c.createGain(),tone=c.createBiquadFilter(),wet=c.createGain();
   delay.delayTime.value=lane===1703?60/108/2:.445;feedback.gain.value=lane===1703?.30:.55;tone.type='lowpass';tone.frequency.value=1420;wet.gain.value=lane===1703?.22:.4;
   filter.connect(delay);delay.connect(tone);tone.connect(feedback);feedback.connect(delay);tone.connect(wet);wet.connect(gain);
@@ -497,13 +532,13 @@ export function synthNote(engine,event,time){
  for(const s of sources){s.onended=()=>{s.disconnect();if(++ended===sources.length){for(const n of nodes)n.disconnect();filter.disconnect();gain.disconnect();panner.disconnect();engine.voices.delete(voice);}};s.start(time);s.stop(time+duration+(cyber?.4:0)+.01);}
 }
 export function scheduleSynth(engine,score){
- const c=engine.ctx;
+ const c=engine.ctx,lookAhead=engine.synthLookAhead??.22;
  if(!engine.synthClock||engine.synthClock.theme!==engine.theme)engine.synthClock={theme:engine.theme,origin:c.currentTime+.05+(score.pickupDuration||0),pickupIndex:0,index:0,cycle:0,wetLevel:engine.echo?.wet.gain.value??0};
  const clock=engine.synthClock;
  // A one-time anacrusis precedes bar one; subsequent pickups live inside the loop.
  while(clock.pickupIndex<(score.pickupEvents?.length||0)){
   const e=score.pickupEvents[clock.pickupIndex],t=clock.origin+e[0];
-  if(t>c.currentTime+.22)break;
+  if(t>c.currentTime+lookAhead)break;
   if(t>=c.currentTime-.02)synthNote(engine,e,Math.max(c.currentTime,t));
   clock.pickupIndex++;
  }
@@ -524,7 +559,7 @@ export function scheduleSynth(engine,score){
 
  if(c.currentTime-clock.origin-clock.cycle*score.duration>score.duration){clock.origin=c.currentTime+.025;clock.index=0;clock.cycle=0;}
  let guard=0;
- while(score.events.length&&guard++<2048){const e=score.events[clock.index],t=clock.origin+clock.cycle*score.duration+e[0];if(t>c.currentTime+.22)break;
+ while(score.events.length&&guard++<2048){const e=score.events[clock.index],t=clock.origin+clock.cycle*score.duration+e[0];if(t>c.currentTime+lookAhead)break;
  if(t>=c.currentTime-.02)synthNote(engine,engine.theme==='hospital'&&e[1]==='lead'?[...e.slice(0,7),e[7]??clock.cycle%4]:e,Math.max(c.currentTime,t));
  if(++clock.index===score.events.length){clock.index=0;clock.cycle++;}
  }
@@ -1159,24 +1194,53 @@ export function createHospitalTheme(){
 // Thanathoa noctivaga, from Gudeco's FL9 preset / index (27).html.
 // Preserve the preset timbre; the score supplies note triggers instead of its arp.
 function synthThanathoa(engine,event,time){
+ // Native GUDECO Config{} startup patch; compensate its -24 transpose to
+ // preserve the written melody register when replacing the game lead.
+ const defaultPatch=event[1]==='vstdefault';
  const c=engine.ctx,gate=event[3],velocity=event[4],nodes=[],sources=[],envelopes=[];
- const output=engine.musicInput||engine.music,filter=c.createBiquadFilter();
+ let output=engine.musicInput||engine.music,effects=engine;
+ const phraseFade=event[7]?.phraseFade;
+ if(phraseFade){
+  const end=time+phraseFade.end-event[0],start=time+phraseFade.start-event[0];
+  if(!engine.secondTripletEffects||Math.abs(engine.secondTripletEffects.end-end)>.001){
+   engine.secondTripletEffects?.output.disconnect();
+   const bus=c.createGain();bus.gain.setValueAtTime(1,time);
+   bus.gain.setValueAtTime(1,start);bus.gain.linearRampToValueAtTime(0,end);bus.connect(output);
+   engine.secondTripletEffects={end,output:bus};
+  }
+  effects=engine.secondTripletEffects;output=effects.output;
+ }
+ const filter=c.createBiquadFilter();
  filter.type='lowpass';filter.Q.value=1.3;nodes.push(filter);
- const sweep=event[7]?.slowFilter;
- const cutoff=t=>sweep?350*2**(2.7*(.5-.5*Math.cos(2*Math.PI*Math.max(0,Math.min(1,(t-sweep.start)/sweep.duration))))):20+19980*(.05+.043*Math.sin(2*Math.PI*.25*t));
- const base=sweep?cutoff(event[0]):484;
+ const sweep=event[7]?.slowFilter,warm=event[7]?.warmFilter;
+ if(warm)filter.Q.value=.65;
+ const cutoff=t=>warm?warm.low*(warm.high/warm.low)**(.5-.5*Math.cos(2*Math.PI*Math.max(0,Math.min(1,(t-warm.start)/warm.duration)))):defaultPatch?700:sweep?350*2**(2.7*(.5-.5*Math.cos(2*Math.PI*Math.max(0,Math.min(1,(t-sweep.start)/sweep.duration))))):20+19980*(.05+.043*Math.sin(2*Math.PI*.25*t));
+ const bite=defaultPatch&&event[7]?.filterBite;
+ if(bite)filter.Q.value=2.1;
+ const base=warm?cutoff(event[0]):defaultPatch?700:sweep?cutoff(event[0]):484;
  filter.frequency.setValueAtTime(base*.55,time);
- filter.frequency.exponentialRampToValueAtTime(base*1.9,time+.015);
- filter.frequency.exponentialRampToValueAtTime(base,time+.12);
+ filter.frequency.exponentialRampToValueAtTime(base*(warm?1.15:bite?3.6:1.9),time+(bite?.008:.015));
+ filter.frequency.exponentialRampToValueAtTime(base,time+(bite?.135:.12));
  for(let t=.14;t<gate+.35;t+=.02)filter.frequency.linearRampToValueAtTime(cutoff(event[0]+t),time+t);
  const dry=c.createGain(),wet=c.createGain();dry.gain.value=.75;wet.gain.value=.25;
  filter.connect(dry);dry.connect(output);filter.connect(wet);nodes.push(dry,wet);
- if(!engine.thanathoaReverb){
+ if(!effects.thanathoaReverb){
   const impulse=c.createBuffer(2,Math.ceil(c.sampleRate*3),c.sampleRate);let seed=73519;
   for(let ch=0;ch<2;ch++){const data=impulse.getChannelData(ch);for(let i=0;i<data.length;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;data[i]=(seed/2147483648-1)*Math.pow(1-i/data.length,2);}}
-  engine.thanathoaReverb=c.createConvolver();engine.thanathoaReverb.buffer=impulse;engine.thanathoaReverb.connect(output);
+  effects.thanathoaReverb=c.createConvolver();effects.thanathoaReverb.buffer=impulse;effects.thanathoaReverb.connect(output);
  }
- wet.connect(engine.thanathoaReverb);
+ wet.connect(effects.thanathoaReverb);
+ const feedbackDelay=event[7]?.feedbackDelay;
+ if(feedbackDelay){
+  if(!effects.warmThanathoaDelay){
+   const input=c.createGain(),delay=c.createDelay(2),tone=c.createBiquadFilter(),feedback=c.createGain(),wetReturn=c.createGain();
+   delay.delayTime.value=feedbackDelay.time;tone.type='lowpass';tone.frequency.value=feedbackDelay.cutoff;
+   feedback.gain.value=feedbackDelay.feedback;wetReturn.gain.value=feedbackDelay.wet;
+   input.connect(delay);delay.connect(tone);tone.connect(feedback);feedback.connect(delay);tone.connect(wetReturn);wetReturn.connect(output);
+   effects.warmThanathoaDelay=input;
+  }
+  filter.connect(effects.warmThanathoaDelay);
+ }
  const echoTaps=event[7]?.echoTaps||0,echoStep=event[7]?.echoStep||0;
  for(let tap=1;tap<=echoTaps;tap++){
   const delay=c.createDelay(2),repeat=c.createGain(),tone=c.createBiquadFilter();
@@ -1184,9 +1248,17 @@ function synthThanathoa(engine,event,time){
   filter.connect(delay);delay.connect(tone);tone.connect(repeat);repeat.connect(output);nodes.push(delay,tone,repeat);
  }
 
- for(const [transpose,detune,level,pan]of [[-5,-.06,.28,-.2],[2,.06,.18,.2],[-24,-.06,.28,-.2],[-24,.06,.18,.2]]){
+ const oscillators=defaultPatch?[[0,-.06,.28,-.2],[0,.06,.18,.2],[0,-.06,.28,-.2],[0,.06,.18,.2]]:[[-5,-.06,.28,-.2],[2,.06,.18,.2],[-24,-.06,.28,-.2],[-24,.06,.18,.2]];
+ for(const [index,[transpose,detune,level,pan]]of oscillators.entries()){
   const osc=c.createOscillator(),amp=c.createGain(),stereo=c.createStereoPanner();osc.type='sawtooth';
   osc.frequency.setValueAtTime(110*2**((event[2]+transpose+detune)/12),time);stereo.pan.value=pan;
+  if(defaultPatch){
+   const drift=.12+index*.06,glide=event[7]?.glideTo;
+   const hzAt=t=>110*2**((event[2]+(glide===undefined?0:(glide-event[2])*Math.min(1,t/gate))+detune+.05*Math.sin(t*2*Math.PI*drift))/12);
+   for(let t=.02;t<gate;t+=.02)osc.frequency.exponentialRampToValueAtTime(hzAt(t),time+t);
+   osc.frequency.exponentialRampToValueAtTime(hzAt(gate),time+gate);
+   for(let t=gate+.02;t<gate+.35;t+=.02)osc.frequency.exponentialRampToValueAtTime(hzAt(t),time+t);
+  }
   const peak=.24*velocity*level,attack=Math.min(.02,gate),decayEnd=Math.min(.22,gate),held=gate<.22?peak*(1-.4*Math.max(0,gate-.02)/.2):peak*.6;
   amp.gain.value=0;amp.gain.setValueAtTime(0,time);amp.gain.linearRampToValueAtTime(peak,time+attack);
   amp.gain.linearRampToValueAtTime(held,time+decayEnd);amp.gain.setValueAtTime(held,time+gate);amp.gain.linearRampToValueAtTime(0,time+gate+.35);
