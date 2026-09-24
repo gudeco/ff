@@ -1,3 +1,4 @@
+import {createUnderpassTheme} from './underpass-music.js';
 import {SYNTH_SCORE} from './synth-score.js';
 import {scheduleSynth,withStageBass,createTitleTheme,createHospitalTheme} from './synth-music.js';
 // Original percussion/ambience scores; no scale or chord progression.
@@ -9,6 +10,7 @@ export const THEMES={
  title:{bpm:110,swing:0,echo:.16,wet:0,feedback:.20},
  plaza:{bpm:174,swing:.035,echo:.29,wet:.24,feedback:.34},
  street:{bpm:188,swing:0,echo:.075,wet:.045,feedback:.12},
+ underpass:{bpm:128,swing:0,echo:.095,wet:.055,feedback:.12},
  hospital:{bpm:170,swing:0,echo:.17,wet:.075,feedback:.20}
 };
 const audioClamp=n=>Math.max(0,Math.min(1,Number(n)||0));
@@ -208,7 +210,7 @@ export class SoundEngine{
   let stopped=false;const voice={music:true,stop:at=>{if(stopped)return;stopped=true;gain.gain.cancelScheduledValues(at);gain.gain.setTargetAtTime(0,at,.012);source.stop(at+.08);}};
   this.slots.set(key,voice);this.voices.add(voice);source.onended=()=>{source.disconnect();gain.disconnect();this.voices.delete(voice);if(this.slots.get(key)===voice)this.slots.delete(key);};source.start(t);
  }
- schedule(){if(!this.enabled||this.paused||!this.ctx||this.ctx.state!=='running')return;if(this.theme==='title'){if(this.musicMode==='synth'){this.titleSynthScore??=createTitleTheme();scheduleSynth(this,this.titleSynthScore);}else if(this.samples?.has('quads-title.wav'))this.startTitleLoop();return;}if(this.musicMode==='synth'||this.theme==='hospital'){this.stageSynthScores??={};this.stageSynthScores[this.theme]??=this.theme==='hospital'?createHospitalTheme():withStageBass(SYNTH_SCORE[this.theme],this.theme);scheduleSynth(this,this.stageSynthScores[this.theme]);return;}if(STAGE_RENDERS[this.theme]&&this.samples?.has(STAGE_RENDERS[this.theme].file)){this.startStageLoop();return;}if(this.theme==='title'&&this.samples?.has('quads-title.wav')){this.startTitleLoop();return;}const c=this.ctx,p=THEMES[this.theme],sixteenth=60/p.bpm/4;
+ schedule(){if(!this.enabled||this.paused||!this.ctx||this.ctx.state!=='running')return;if(this.theme==='title'){if(this.musicMode==='synth'){this.titleSynthScore??=createTitleTheme();scheduleSynth(this,this.titleSynthScore);}else if(this.samples?.has('quads-title.wav'))this.startTitleLoop();return;}if(this.musicMode==='synth'||this.theme==='hospital'||this.theme==='underpass'){this.stageSynthScores??={};this.stageSynthScores[this.theme]??=this.theme==='underpass'?createUnderpassTheme():this.theme==='hospital'?createHospitalTheme():withStageBass(SYNTH_SCORE[this.theme],this.theme);scheduleSynth(this,this.stageSynthScores[this.theme]);return;}if(STAGE_RENDERS[this.theme]&&this.samples?.has(STAGE_RENDERS[this.theme].file)){this.startStageLoop();return;}if(this.theme==='title'&&this.samples?.has('quads-title.wav')){this.startTitleLoop();return;}const c=this.ctx,p=THEMES[this.theme],sixteenth=60/p.bpm/4;
   // If a tab stalls, resume from now rather than emit a backlog of notes.
   if(this.nextTime<c.currentTime-.1)this.nextTime=c.currentTime+.025;
   while(this.nextTime<c.currentTime+.12){const t=this.nextTime+(this.step%2?p.swing*sixteenth:0);for(const e of [...scoreStep(this.theme,this.step),...ambienceStep(this.theme,this.step),...industrialStep(this.theme,this.step)])this.voice(e.instrument,e.freq,t+e.offset*sixteenth,e.duration,e.level,e.pan,true,e.voice,e.slide,e.texture);this.step=(this.step+1)%512;this.nextTime+=sixteenth;}

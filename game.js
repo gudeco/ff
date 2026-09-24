@@ -1,3 +1,4 @@
+import {createUnderpassCrowd,reactUnderpassCrowd,drawUnderpassCrowd} from './underpass.js';
 import {SoundEngine,SAMPLE_FILES} from './audio-engine.js';
 import {drawHospitalRain,drawHospitalOvercast} from './weather.js';
 import {drawDamage} from './damage-art.js';
@@ -6,7 +7,7 @@ import {loadArt,images,sprites,cats,effects,drawFighter,drawPortrait,drawStageBa
 import {drawVorathClaw,drawVorathFireCast,drawUnarmed,drawMovement,drawAndreWaveCast,drawContextAttack,drawWeaponAttack} from './normal-attacks.js';
 import {drawFireProjectile,drawFlood,FLOOD_DURATION,drawSoundBlast,drawMagicBlast,drawSummonSeal,drawThesisPaper} from './wave-art.js';
 import {drawGudecoFeedback,drawFeedbackCat,drawMariCat} from './feedback-art.js';
-let floods=[];
+let floods=[],underpassCrowd=createUnderpassCrowd();
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const canvas=$('#game'),ctx=canvas.getContext('2d');
 const fxCanvas=document.createElement('canvas');fxCanvas.width=640;fxCanvas.height=400;const fx=fxCanvas.getContext('2d');
@@ -20,8 +21,8 @@ const soundEngine=new SoundEngine();
 function sound(event){const f=match?.fighters[event.i??event.owner??0];soundEngine.effect(event,f?.id||chosen,f?(f.x/1280-.5)*.8:0);}
 function syncAudioPause(){soundEngine.setPaused(paused||document.hidden).catch(console.warn);}
 function burst(x,y,color,count=20){for(let n=0;n<count;n++)particles.push({x,y,vx:(Math.random()-.5)*420,vy:(Math.random()-.7)*380,life:.2+Math.random()*.45,max:.65,color,size:2+Math.random()*5});}
-function events(){for(const e of match.consumeEvents()){if(e.type==='flood')floods.push({...e,age:0});if(e.type==='round'||e.type==='ko')floods=[];sound(e);if(e.type==='hit'||e.type==='block'){shake=e.type==='hit'?(reduced?0:6):2;flash=e.type==='hit'?.06:0;burst(e.x,e.y,e.type==='hit'?'#e0bc7c':'#a8cbd3',e.type==='hit'?25:12);if(e.combo>1&&e.type==='hit')floaters.push({text:e.combo+' HITS',x:e.x,y:e.y-110,life:1,color:'#f0c578'});}if(e.type==='land'){burst(e.x,e.y,'#9d947d',15);if(!reduced)shake=4;}if(e.type==='poison')burst(e.x,e.y,'#a6b869',5);if(e.type==='evade')floaters.push({text:'SPECIAL +'+e.amount,x:e.x,y:e.y,life:1,color:'#b7d5c2'});if(e.type==='empty')floaters.push({text:'LOW ENERGY',x:match.fighters[e.i].x,y:match.fighters[e.i].y-330,life:.6,color:'#bba989'});if(e.type==='fight'){banner='FIGHT';bannerTime=.8;}if(e.type==='round'){banner='ROUND '+e.round;bannerTime=1.8;}if(e.type==='ko'){banner=e.winner<0?'DRAW':e.timeout?'TIME UP':'K.O.';bannerTime=2.6;}if(e.type==='over')showOverlay(false);}}
-function start(){if(!ready)return;floods=[];$('#song-next').hidden=true;$('#song-current').hidden=true;soundEngine.setTheme(stage);match=new Match(chosen,$('#opponent').value,mode,$('#difficulty').value);paused=false;accumulator=0;particles=[];floaters=[];keys.clear();taps.clear();$('#selection').hidden=true;$('#arena').hidden=false;$('#overlay').hidden=true;$('#stage-name').textContent=({plaza:'SQUARE',street:'STREET',hospital:'HOSPITAL'})[stage];syncAudioPause();events();canvas.focus();}
+function events(){for(const e of match.consumeEvents()){if(stage==='underpass'){if(e.type==='round')underpassCrowd=createUnderpassCrowd();else reactUnderpassCrowd(underpassCrowd,e);}if(e.type==='flood')floods.push({...e,age:0});if(e.type==='round'||e.type==='ko')floods=[];sound(e);if(e.type==='hit'||e.type==='block'){shake=e.type==='hit'?(reduced?0:6):2;flash=e.type==='hit'?.06:0;burst(e.x,e.y,e.type==='hit'?'#e0bc7c':'#a8cbd3',e.type==='hit'?25:12);if(e.combo>1&&e.type==='hit')floaters.push({text:e.combo+' HITS',x:e.x,y:e.y-110,life:1,color:'#f0c578'});}if(e.type==='land'){burst(e.x,e.y,'#9d947d',15);if(!reduced)shake=4;}if(e.type==='poison')burst(e.x,e.y,'#a6b869',5);if(e.type==='evade')floaters.push({text:'SPECIAL +'+e.amount,x:e.x,y:e.y,life:1,color:'#b7d5c2'});if(e.type==='empty')floaters.push({text:'LOW ENERGY',x:match.fighters[e.i].x,y:match.fighters[e.i].y-330,life:.6,color:'#bba989'});if(e.type==='fight'){banner='FIGHT';bannerTime=.8;}if(e.type==='round'){banner='ROUND '+e.round;bannerTime=1.8;}if(e.type==='ko'){banner=e.winner<0?'DRAW':e.timeout?'TIME UP':'K.O.';bannerTime=2.6;}if(e.type==='over')showOverlay(false);}}
+function start(){if(!ready)return;underpassCrowd=createUnderpassCrowd();floods=[];$('#song-next').hidden=true;$('#song-current').hidden=true;soundEngine.setTheme(stage);match=new Match(chosen,$('#opponent').value,mode,$('#difficulty').value);paused=false;accumulator=0;particles=[];floaters=[];keys.clear();taps.clear();$('#selection').hidden=true;$('#arena').hidden=false;$('#overlay').hidden=true;$('#stage-name').textContent=({plaza:'SQUARE',street:'STREET',hospital:'HOSPITAL',underpass:'UNDERPASS'})[stage];syncAudioPause();events();canvas.focus();}
 function showOverlay(isPause){$('#overlay').hidden=false;$('#overlay-title').textContent=isPause?'Paused':ROSTER[match.ids[match.wins[0]>match.wins[1]?0:1]].name+' wins.';$('#overlay-text').textContent=isPause?'':match.wins.join(' — ');$('#resume').hidden=!isPause;}
 function pause(){if(!match||match.phase==='over'||$('#arena').hidden)return;paused=!paused;keys.clear();taps.clear();if(paused)showOverlay(true);else $('#overlay').hidden=true;syncAudioPause();}
 function back(){match=null;paused=false;soundEngine.setTheme('title');$('#song-next').hidden=false;updateSongPreview();syncAudioPause();keys.clear();taps.clear();$('#arena').hidden=true;$('#selection').hidden=false;$('#overlay').hidden=true;}
@@ -47,9 +48,9 @@ function unlockSound(e){if(document.body.classList.contains('awaiting-entry'))re
 window.addEventListener('pointerdown',unlockSound,{capture:true});
 window.addEventListener('click',unlockSound,{capture:true});
 window.addEventListener('keydown',unlockSound,{capture:true});
-const previewSongs=['title','plaza','street','hospital'],previewNames=['Main','Square','Street','Hospital'];
-function updateSongPreview(){const i=previewSongs.indexOf(soundEngine.theme);$('#song-current').textContent=previewNames[i];$('#song-next').title='Next song: '+previewNames[(i+1)%4];$('#song-next').setAttribute('aria-label','Next song; currently '+previewNames[i]);}
-$('#song-next').onclick=async()=>{if(match)return;soundEngine.setTheme(previewSongs[(previewSongs.indexOf(soundEngine.theme)+1)%4]);$('#song-current').hidden=false;updateSongPreview();if(!soundOn){soundOn=true;updateSoundButton();}await activateSound();};
+const previewSongs=['title','plaza','street','hospital','underpass'],previewNames=['Main','Square','Street','Hospital','Underpass'];
+function updateSongPreview(){const i=previewSongs.indexOf(soundEngine.theme);$('#song-current').textContent=previewNames[i];$('#song-next').title='Next song: '+previewNames[(i+1)%previewSongs.length];$('#song-next').setAttribute('aria-label','Next song; currently '+previewNames[i]);}
+$('#song-next').onclick=async()=>{if(match)return;soundEngine.setTheme(previewSongs[(previewSongs.indexOf(soundEngine.theme)+1)%previewSongs.length]);$('#song-current').hidden=false;updateSongPreview();if(!soundOn){soundOn=true;updateSoundButton();}await activateSound();};
 $('#sound').onclick=async()=>{soundOn=!soundOn;updateSoundButton();if(soundOn)await activateSound();else await soundEngine.setEnabled(false);};
 updateSoundButton();
 for(const id of ['music-volume','effects-volume'])$('#'+id).oninput=()=>soundEngine.setVolumes($('#music-volume').value/100,$('#effects-volume').value/100);
@@ -114,6 +115,7 @@ function fighter(f,i){const bob=f.walk?Math.sin(clock*17)*2:Math.sin(clock*2.5+i
 }
 function render(dt){clock+=dt;if(match)for(const f of match.fighters)f.walkTime=f.walk?(f.walkTime||0)+dt:0;ctx.clearRect(0,0,1280,800);ctx.save();if(shake>0){ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);shake=Math.max(0,shake-dt*25);}ctx.imageSmoothingEnabled=false;
  drawStageBackground(ctx,stage);
+ if(stage==='underpass')drawUnderpassCrowd(ctx,images,underpassCrowd,dt);
  ctx.fillStyle='#0818100d';ctx.fillRect(0,0,1280,800);
  // Quiet dust and leaves keep the original environment alive without repainting it.
  if(stage==='hospital')drawHospitalRain(ctx,clock,false,reduced);

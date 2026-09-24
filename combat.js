@@ -144,9 +144,25 @@ export class Match {
  if(me.y>=GROUND&&(me.x<155||me.x>1125)&&d<230&&r()<.55){input.jump=true;input.move=Math.sign(enemy.x-me.x);input.guard=false;input.punch=false;input.kick=false;input.melee=false;}
  if(me.airborne){input.guard=false;if(me.vy>0&&d<150&&r()<.55)input.kick=true;}
  if(this.difficulty==='easy'&&r()<.4)return this.aiInput={};return this.aiInput=input;}
+ // Cats remain animated through a knockout, until their whole sprite leaves view.
+ advanceExitingCats(dt){
+  for(const p of this.projectiles){
+   if(p.type==='cat')this.advanceMariCat(p,dt);
+   else if(p.type==='feedbackCat')this.advanceFeedbackCat(p,dt);
+  }
+  this.projectiles=this.projectiles.filter(p=>p.life>0&&p.x>-150&&p.x<1430);
+ }
+ retireCats(){
+  this.projectiles=this.projectiles.filter(p=>p.type==='cat'||p.type==='feedbackCat');
+  for(const p of this.projectiles){
+   p.spent=true;p.delay=0;p.life=Infinity;
+   if(!['claw','recover','jump','run'].includes(p.state)){p.state='recover';p.stateTime=0;}
+  }
+ }
  step(dt,inputs=[{},{}]){if(this.phase==='over')return;
  if(this.hitstop>0){this.hitstop=Math.max(0,this.hitstop-dt);return;}
- if(this.phase==='intro'||this.phase==='roundEnd'){if(this.phase==='roundEnd')this.fighters.forEach(f=>{this.advanceReaction(f,dt);if(!f.down){if(f.attack){f.attack.time+=dt;if(f.attack.time>=ATTACKS[f.attack.kind].duration)f.attack=null;}if(f.y<GROUND){f.vy+=JUMP.gravity*dt;f.y=Math.min(GROUND,f.y+f.vy*dt);if(f.y===GROUND){f.vy=0;f.airborne=false;}}}});this.phaseTime-=dt;if(this.phaseTime<=0){if(this.phase==='intro'){this.phase='fight';this.emit('fight');}else{if(this.wins.some(w=>w>=2)){this.phase='over';this.emit('over',{winner:this.wins[0]>this.wins[1]?0:1});}else{this.round++;this.newRound();}}}return;}
+ if(this.phase==='roundEnd')this.advanceExitingCats(dt);
+ if(this.phase==='intro'||this.phase==='roundEnd'){if(this.phase==='roundEnd')this.fighters.forEach(f=>{this.advanceReaction(f,dt);if(!f.down){if(f.attack){f.attack.time+=dt;if(f.attack.time>=ATTACKS[f.attack.kind].duration)f.attack=null;}if(f.y<GROUND){f.vy+=JUMP.gravity*dt;f.y=Math.min(GROUND,f.y+f.vy*dt);if(f.y===GROUND){f.vy=0;f.airborne=false;}}}});this.phaseTime-=dt;if(this.phaseTime<=0&&(this.phase!=='roundEnd'||this.projectiles.length===0)){if(this.phase==='intro'){this.phase='fight';this.emit('fight');}else{if(this.wins.some(w=>w>=2)){this.phase='over';this.emit('over',{winner:this.wins[0]>this.wins[1]?0:1});}else{this.round++;this.newRound();}}}return;}
  this.time=Math.max(0,this.time-dt);
  if(this.mode==='cpu')inputs=[inputs[0],this.cpu(dt)];
  for(let i=0;i<2;i++){const f=this.fighters[i],e=this.fighters[1-i],input=inputs[i]||{};
@@ -211,7 +227,7 @@ export class Match {
  }
  this.projectiles=this.projectiles.filter(p=>p.life>0&&p.x>-150&&p.x<1430);
  const live=new Set(this.projectiles.map(p=>p.cast));for(const [id,cast]of this.casts)if(!live.has(id)){if(cast.threat&&!cast.contact&&!this.fighters[1-cast.owner].down&&this.fighters[1-cast.owner].hp>0)this.gainSpecial(1-cast.owner,30);this.casts.delete(id);}
- if(this.fighters.some(f=>f.hp<=0)||this.time<=0){const diff=a.hp-b.hp;this.winner=Math.abs(diff)<.001?-1:diff>0?0:1;if(this.winner>=0){this.wins[this.winner]++;const loser=this.fighters[1-this.winner];if(loser.down)loser.down.defeated=true;else this.knockDown(loser,Math.sign(loser.x-this.fighters[this.winner].x)||1,true);}for(const f of this.fighters)if(f.hp<=0&&!f.down)this.knockDown(f,-f.facing,true);this.phase='roundEnd';this.phaseTime=2.8;this.projectiles=[];this.casts.clear();this.emit('ko',{winner:this.winner,timeout:this.time<=0});}
+ if(this.fighters.some(f=>f.hp<=0)||this.time<=0){const diff=a.hp-b.hp;this.winner=Math.abs(diff)<.001?-1:diff>0?0:1;if(this.winner>=0){this.wins[this.winner]++;const loser=this.fighters[1-this.winner];if(loser.down)loser.down.defeated=true;else this.knockDown(loser,Math.sign(loser.x-this.fighters[this.winner].x)||1,true);}for(const f of this.fighters)if(f.hp<=0&&!f.down)this.knockDown(f,-f.facing,true);this.phase='roundEnd';this.phaseTime=2.8;this.retireCats();this.casts.clear();this.emit('ko',{winner:this.winner,timeout:this.time<=0});}
  }
 }
 

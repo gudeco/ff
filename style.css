@@ -44,3 +44,9 @@ body.awaiting-entry>header,body.awaiting-entry>main{visibility:hidden}
 
 .stages{grid-template-columns:repeat(3,minmax(0,1fr))}.stage>span{padding:10px 6px}.stage b{letter-spacing:.5px;margin-left:3px}
 
+
+/* Keep the original menu columns. The fourth stage uses the spare space to
+   their right on wide screens; mode/opponent controls retain their width. */
+.stages{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(min-width:1660px){.stages{width:calc(133.333% + 3.333px)}}
+@media(max-width:600px){.stages{grid-template-columns:repeat(2,minmax(0,1fr))}}
