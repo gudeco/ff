@@ -9,11 +9,12 @@ export function synthNote(engine,event,time){
  const freq=Math.max(28,Math.min(1000,(kind==='kick'?55:kind==='bassline'?55:kind==='bass'?65:kind==='metal'?170:110)*2**((Array.isArray(pitch)?pitch[0]:pitch)/12)));
  filter.type=kind==='snare'||kind==='hat'||kind==='cymbal'?'highpass':'lowpass';filter.frequency.value=kind==='cymbal'?1900:kind==='tom'?1100:kind==='hat'?3000:kind==='snare'?700:kind==='bassline'?750:kind==='pad'?900:kind==='metal'?2200:kind==='kick'?1000:1800;
  panner.pan.value=kind==='kick'||kind==='bass'||kind==='bassline'?0:Math.max(-.65,Math.min(.65,pan+(kind==='pad'?.25*Math.sin(lane*2.4):kind==='hat'?.3:kind==='metal'?-.22:0)));
+ if(lane===1531){panner.pan.setValueAtTime(pan,time);panner.pan.linearRampToValueAtTime(-pan,time+duration);}
  const level=({shepard:.010,lahopterix:.065,brass:.085,harp:.028,kick:.36,snare:.12,hat:.04,tom:.19,cymbal:.065,ride:.065,bell:.095,metal:.10,bass:.12,bassline:.34,organ:.065,polysynth:.12,lead:.115,pad:.055,air:.04}[kind]||.06)*Math.min(1.2,velocity)*(squareDouble&&kind==='bassline'?.90:1)*(kind==='lead'?[1,1.8,1.45,1.9][event[7]??0]:1);
  gain.gain.setValueAtTime(0,time);
  if(kind==='bassline'&&lane===1497){
   const gate=event[7].gate,short=event[7].short,decay=Math.min(short?.055:.2,Math.max(0,gate-.02)),sustain=short?.16:.6;
-  gain.gain.linearRampToValueAtTime(level,time+.02);
+  gain.gain.linearRampToValueAtTime(level,time+(event[7].bite?.004:.02));
   gain.gain.linearRampToValueAtTime(level*sustain,time+.02+decay);
   gain.gain.setValueAtTime(level*sustain,time+gate);
   gain.gain.linearRampToValueAtTime(0,time+duration);
@@ -29,6 +30,17 @@ export function synthNote(engine,event,time){
   gain.gain.linearRampToValueAtTime(level*.12,time+duration*.15);
   gain.gain.linearRampToValueAtTime(level,time+duration*.88);
   gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+ }else if(lane===1520){
+  // Street C: a quiet chromatic Lahopterix cluster, gently swelling and releasing.
+  gain.gain.linearRampToValueAtTime(level*.18,time+duration*.20);
+  gain.gain.linearRampToValueAtTime(level,time+duration*.58);
+  gain.gain.linearRampToValueAtTime(level*.62,time+duration*.84);
+  gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+ }else if(kind==='lahopterix'&&lane===1531){
+  gain.gain.linearRampToValueAtTime(level*.30,time+duration*.20);
+  gain.gain.linearRampToValueAtTime(level,time+duration*.50);
+  gain.gain.setValueAtTime(level,time+duration*.85);
+  gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
  }else if(kind==='lahopterix'){
   gain.gain.linearRampToValueAtTime(level,time+.43);
   if(event[7]?.fadeOut)gain.gain.linearRampToValueAtTime(level*.7,time+duration*(1-event[7].fadeOut));
@@ -43,6 +55,17 @@ export function synthNote(engine,event,time){
   gain.gain.linearRampToValueAtTime(level,time+.018);
   gain.gain.exponentialRampToValueAtTime(level*.55,time+duration*.4);
   gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+ }else if(kind==='polysynth'&&lane===1550){
+  gain.gain.linearRampToValueAtTime(level,time+.004);
+  gain.gain.exponentialRampToValueAtTime(level*.42,time+Math.min(.20,duration*.4));
+  gain.gain.exponentialRampToValueAtTime(level*.22,time+duration-Math.min(.045,duration*.2));
+  gain.gain.linearRampToValueAtTime(0,time+duration);
+ }else if(kind==='polysynth'&&lane===1540){
+  const landing=event[7].landing;
+  gain.gain.linearRampToValueAtTime(level*.18,time+landing*.25);
+  gain.gain.linearRampToValueAtTime(level,time+landing);
+  gain.gain.linearRampToValueAtTime(level*.72,time+duration*.87);
+  gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
  }else if(kind==='polysynth'&&lane===1513){
   gain.gain.linearRampToValueAtTime(level,time+.025);
   gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
@@ -50,6 +73,12 @@ export function synthNote(engine,event,time){
   gain.gain.linearRampToValueAtTime(level*.12,time+duration*.16);
   gain.gain.linearRampToValueAtTime(level,time+duration*.48);
   gain.gain.linearRampToValueAtTime(level*.82,time+duration*.72);
+  gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+ }else if(rhodes&&event[7]?.swell){
+  const rise=event[7].swellRise??duration*.70;
+  gain.gain.linearRampToValueAtTime(level*.12,time+rise*15/70);
+  gain.gain.linearRampToValueAtTime(level,time+rise);
+  if(event[7].sustain)gain.gain.setValueAtTime(level,time+duration*.90);
   gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
  }else if(rhodes&&lane===1498){
   gain.gain.linearRampToValueAtTime(level,time+.04);
@@ -95,9 +124,9 @@ export function synthNote(engine,event,time){
   if(!engine.tribalDriveCurve)engine.tribalDriveCurve=Float32Array.from({length:1024},(_,i)=>Math.tanh(1.15*(i/511.5-1))/Math.tanh(1.15));
   drive.curve=engine.tribalDriveCurve;drive.oversample='2x';drive.connect(filter);oscillatorBus=drive;nodes.push(drive);
  }
- if(kind==='lead'&&(leadVariant===1||leadVariant===3)){
+ if((kind==='lead'&&(leadVariant===1||leadVariant===3))||((rhodes||kind==='lahopterix')&&event[7]?.ringHz)){
   const ring=c.createGain(),mod=c.createOscillator();
-  ring.gain.value=0;mod.type='sine';mod.frequency.setValueAtTime(leadVariant===1?37:83,time);
+  ring.gain.value=0;mod.type='sine';mod.frequency.setValueAtTime(event[7]?.ringHz??(leadVariant===1?37:83),time);
   mod.connect(ring.gain);ring.connect(filter);oscillatorBus=ring;
   sources.push(mod);nodes.push(ring);
  }
@@ -139,17 +168,31 @@ export function synthNote(engine,event,time){
    }
   }
  }
+ else if(kind==='polysynth'&&lane===1550){
+  // Street harp timbre, with sustained overlap and expressive vibrato for D2.
+  const hz=110*2**(pitch/12),vibrato=c.createOscillator();
+  vibrato.frequency.value=4.7;
+  for(const [wave,harmonic,amp]of [['sine',1,.8],['triangle',1,.15],['sine',2,.09]]){
+   const o=osc(wave,hz*harmonic,amp),depth=c.createGain();
+   depth.gain.setValueAtTime(0,time);depth.gain.linearRampToValueAtTime(hz*harmonic*.009,time+Math.min(.18,duration*.45));
+   vibrato.connect(depth);depth.connect(o.frequency);nodes.push(depth);
+  }
+  filter.Q.value=.2;filter.frequency.setValueAtTime(3800,time);
+  filter.frequency.exponentialRampToValueAtTime(1400,time+duration);
+  sources.push(vibrato);
+ }
  else if(kind==='lahopterix'){
   // Lahopterix hissata reference: two sines, two saws, soft attack, low-pass and delay.
   const base=110*2**((pitch+.055)/12);
-  for(const [wave,amp]of [['sine',.151],['sawtooth',.023],['sine',.512],['sawtooth',.626]]){
-   const o=osc(wave,lane===1511?base*2**(-2/12):lane===1512?base*2**(2/12):base,amp*.65);
-   if(lane===1511||lane===1512)o.frequency.exponentialRampToValueAtTime(base,time+Math.min(.65,duration*.3));
-   else if(lane===1596){o.frequency.exponentialRampToValueAtTime(base*2**(.035/12),time+duration*.5);o.frequency.exponentialRampToValueAtTime(base*2**(-.025/12),time+duration);}
+  for(const [i,[wave,amp]]of [['sine',.151],['sawtooth',.023],['sine',.512],['sawtooth',.626]].entries()){
+   const o=osc(wave,lane===1531?base*2**(-45/1200):lane===1511?base*2**(-2/12):lane===1512?base*2**(2/12):base,amp*.65);
+   if(lane===1531)o.frequency.exponentialRampToValueAtTime(base,time+duration*.75);
+   else if(lane===1511||lane===1512)o.frequency.exponentialRampToValueAtTime(base,time+Math.min(.65,duration*.3));
+   else if(lane===1596||lane===1520){o.frequency.exponentialRampToValueAtTime(base*2**(.035/12),time+duration*.5);o.frequency.exponentialRampToValueAtTime(base*2**(-.025/12),time+duration);}
    else if(lane===1483){o.frequency.exponentialRampToValueAtTime(base*2**(1/12),time+duration*.5);o.frequency.exponentialRampToValueAtTime(base,time+duration*.9);}
    else o.frequency.exponentialRampToValueAtTime(base*2**(-2/12),time+duration*.9);
   }
-  filter.frequency.value=lane===1596?2400:608;filter.Q.value=.4;
+  filter.frequency.value=lane===1596?2400:lane===1520?1900:lane===1531?2200:608;filter.Q.value=.4;
   const delay=c.createDelay(1),feedback=c.createGain(),tone=c.createBiquadFilter(),wet=c.createGain();
   delay.delayTime.value=.445;feedback.gain.value=.55;tone.type='lowpass';tone.frequency.value=1420;wet.gain.value=.4;
   filter.connect(delay);delay.connect(tone);tone.connect(feedback);feedback.connect(delay);tone.connect(wet);wet.connect(gain);
@@ -190,9 +233,15 @@ export function synthNote(engine,event,time){
  else if(kind==='bassline'&&lane===1497){
   // GUDECO Config{} startup, not factory program 0. G3 input transposed -24 = G1.
   for(const [detune,amp]of [[-.06,.28],[.06,.18],[-.06,.28],[.06,.18]])osc('sawtooth',freq*2**(detune/12),amp);
-  filter.Q.value=.85;filter.frequency.setValueAtTime(260,time);
-  filter.frequency.exponentialRampToValueAtTime(720,time+.015);
-  filter.frequency.exponentialRampToValueAtTime(420,time+.12);
+  if(event[7]?.bite){
+   filter.Q.value=1.6;filter.frequency.setValueAtTime(1800,time);
+   filter.frequency.exponentialRampToValueAtTime(300,time+.09);
+   filter.frequency.exponentialRampToValueAtTime(180,time+duration);
+  }else{
+   filter.Q.value=.85;filter.frequency.setValueAtTime(260,time);
+   filter.frequency.exponentialRampToValueAtTime(720,time+.015);
+   filter.frequency.exponentialRampToValueAtTime(420,time+.12);
+  }
   const chorus=c.createDelay(.05),lfo=c.createOscillator(),depth=c.createGain(),wet=c.createGain();
   chorus.delayTime.value=.0095;lfo.frequency.value=.22;depth.gain.value=.0038;wet.gain.value=.25;
   lfo.connect(depth);depth.connect(chorus.delayTime);filter.connect(chorus);chorus.connect(wet);wet.connect(gain);
@@ -231,6 +280,18 @@ export function synthNote(engine,event,time){
    for(let i=1;i<=12;i++)filter.frequency.exponentialRampToValueAtTime(i%2?2100:700,time+duration*i/12);
   }
   panner.pan.setValueAtTime(pan-.08,time);panner.pan.linearRampToValueAtTime(pan+.08,time+duration);
+ }
+ else if(kind==='polysynth'&&lane===1540){
+  // Interleaved high glides settle into adjacent notes and remain superimposed.
+  const target=110*2**(pitch/12),{from,landing}=event[7];
+  for(const [wave,amp,cents]of [['triangle',.55,-3],['sine',.45,3],['sawtooth',.12,0]]){
+   const hz=target*2**(cents/1200),o=osc(wave,hz*2**(from/12),amp);
+   o.frequency.exponentialRampToValueAtTime(hz,time+landing);
+   o.frequency.linearRampToValueAtTime(hz*2**(-cents/1200),time+duration);
+  }
+  filter.Q.value=.5;filter.frequency.setValueAtTime(1400,time);
+  filter.frequency.linearRampToValueAtTime(3200,time+landing);
+  filter.frequency.linearRampToValueAtTime(2100,time+duration);
  }
  else if(kind==='polysynth'){
   const chord=Array.isArray(pitch)?pitch:[pitch],balance=1/Math.sqrt(chord.length);
@@ -273,7 +334,7 @@ export function synthNote(engine,event,time){
     o.frequency.exponentialRampToValueAtTime(110*2**((target+transpose+detune)/12),time+landing);
    }
   }
-  const upperCounterline=[1487,1488,1489,1491].includes(lane);
+  const upperCounterline=[1487,1488,1489,1491].includes(lane)||event[7]?.swell;
   filter.Q.value=.1;filter.frequency.setValueAtTime(upperCounterline?1200:556,time);
   filter.frequency.linearRampToValueAtTime(upperCounterline?1550:620,time+duration*.5);
   filter.frequency.linearRampToValueAtTime(upperCounterline?1000:510,time+duration);
@@ -408,7 +469,7 @@ export function streetMicroPitch(pitch){
  const degree=pitch+2,octave=Math.floor(degree/12),pc=((degree%12)+12)%12;
  return -2+12*octave+12*Math.log2(ratios[pc]);
 }
-export function arrangeStreet(source){
+export function arrangeStreetCycle(source){
  const step=60/188/4,barTime=step*16,sectionTime=barTime*4;
  const form=['A',"A'",'B','A*',"A*'",'C','D','E','F'],events=[],activeWindows=[];
  const motifs={
@@ -540,7 +601,8 @@ export function arrangeStreet(source){
   }
   for(let bar=0;bar<4;bar++){
    // The second G5/C#6 statement adds D6/G#6 above the original dyad.
-   if(power&&bar===1)events.push([dest+bar*16*step,'organ',prime?[34,40,41,47]:[34,40],16*step,.15,.08,1498]);
+   if(power&&bar===1)events.push([dest+bar*16*step,'organ',prime?[34,40,41,47]:[34,40],16*step,.20,.08,1498]);
+   if(power&&prime&&bar===1)events.push([dest+(bar*16+8)*step,'organ',[53,59],8*step,.48,-.08,1498,{swell:true}]);
    if(part==='A'&&bar===0)for(const slot of [0,4]){
     const gate=4*step;
     events.push([dest+slot*step,'bassline',-2,gate+.20,.32,0,1497,{gate}]);
@@ -554,9 +616,11 @@ export function arrangeStreet(source){
    for(const [noteIndex,[slot,pitch,length,velocity]]of motif.entries()){
     // Last C bar leaves a short breath before the recurring A downbeat.
     if((part==='C'||part==='D')&&bar===3&&slot>=14)continue;
-    const held=length;
+    const nextSlot=motif[noteIndex+1]?.[0]??16;
+    const held=part==='C'?Math.min(length*1.9,nextSlot-slot-.2):length;
     const accent=velocity*(part==='A'&&slot===0?1.06:1);
-    add((bar*16+slot)*step,'bassline',pitch,held,accent,999);
+    if(part==='C')for(const half of [0,1])add((bar*16+slot+half*held/2)*step,'bassline',pitch,held/2,accent,999);
+    else add((bar*16+slot)*step,'bassline',pitch,held,accent,999);
     if(power&&[0,1,4,5].includes(noteIndex))for(const interval of [7,12])add((bar*16+slot)*step,'bassline',pitch+interval,held,accent*.62,1495);
    }
    if(prime){
@@ -595,6 +659,10 @@ export function arrangeStreet(source){
     }
    }
    if(part==='C'){
+    if(bar===0){
+     // Five adjacent high notes: E5, F5, F#5, G5, G#5.
+     for(let i=0;i<5;i++)events.push([dest,'lahopterix',31+i,sectionTime-step,.055,(i-2)*.08,1520,{ringHz:47}]);
+    }
     // Rising dissonant texture builds drama without changing the bass motif.
     add(bar*16*step,'pad',-2,12,.16+bar*.045,1100);
     add((bar*16+4)*step,'metal',4,5,.15+bar*.045,1101);
@@ -610,6 +678,102 @@ export function arrangeStreet(source){
   const upper=[...e];upper[2]=Array.isArray(e[2])?e[2].map(n=>n+12):e[2]+12;upper[4]*=.65;upper[8]='street-D-octave';if(e[7]?.transition)upper[7]={...e[7],targets:e[7].targets.map(n=>n+12)};return upper;
  });
  return {duration:sectionTime*form.length,form,sectionBars:4,activeWindows,events:[...events,...upperRhodes].filter(e=>e[1]!=='metal').sort((a,b)=>a[0]-b[0])};
+}
+
+export function arrangeStreet(source){
+ const cycle=arrangeStreetCycle(source),step=60/188/4,start=cycle.duration*2,duration=start+128*step;
+ const repeat=[];
+ for(const original of cycle.events){
+  const e=[original[0]+cycle.duration,...original.slice(1)];
+  if(e[6]===1498){
+   if(e[7]?.swell){
+    // Keep triplet entries; hold the first swell beneath the higher entry until the bar ends.
+    const span=e[3]/3;
+    repeat.push([e[0]+span,'organ',[53,59],2*span,.48,-.08,1498,{swell:true,swellRise:span*.70,sustain:true}]);
+    repeat.push([e[0]+2*span,'organ',[51,59,66,71],span,.48,.08,1498,{swell:true}]);
+    continue;
+   }
+   e[2]=[39,47]; // C6/G#6, only in the second pass.
+   if(original[0]<16*16*step)e[7]={ringHz:61};
+  }
+  repeat.push(e);
+  if(e[6]===1520){const upper=[...e];upper[2]+=12;repeat.push(upper);}
+ }
+ const events=[...cycle.events,...repeat];
+ // D2 fingerpicking: thumb-led lower notes alternate with upper-string answers.
+ // Use Rhodesia's full harmony, with natural timing and touch inside each bar.
+ for(const [chordIndex,chord] of repeat.filter(e=>e[6]===1400&&e[8]!=='street-D-octave').entries()){
+  const pitchClasses=new Set(chord[2].flatMap(n=>[-12,-2,21,5].map(interval=>((n+interval)%12+12)%12)));
+  // Revoice the same harmony in progressively higher, overlapping registers.
+  const floor=chordIndex*7,pitches=Array.from({length:25},(_,i)=>floor+i).filter(n=>pitchClasses.has(n%12));
+  const voicing=Array.from({length:6},(_,i)=>pitches[Math.round(i*(pitches.length-1)/5)]);
+  const picking=[0,2,4,2,1,3,5,3],touch=[1,.76,.88,.70,.93,.78,.91,.67];
+  for(let i=0;i<picking.length;i++){
+   const string=picking[i],delay=i*2*step+[0,.009,-.004,.006,0,.011,-.003,.005][i];
+   // Release before the next chord; the final bar cannot spill into E2.
+   const registerLevel=[1,.90,.70,.52][chordIndex];
+   events.push([chord[0]+delay,'polysynth',voicing[string],16*step-delay-.015,.17*touch[i]*registerLevel,-.22+string*.088,1550,{strumStart:chord[0]}]);
+  }
+ }
+ // Four finite, tempo-synced delay taps; no feedback tail can cross into E2.
+ const harpEnd=cycle.duration+28*16*step-.015;
+ for(const note of events.filter(e=>e[6]===1550)){
+  for(let tap=1;tap<=4;tap++){
+   const onset=note[0]+tap*3*step,remaining=harpEnd-onset;
+   if(remaining<.025)continue;
+   events.push([onset,...note.slice(1,3),Math.min(note[3],remaining),note[4]*.52**tap,note[5],1550,{...note[7],echoTap:tap}]);
+  }
+ }
+ // C2 only: eight much quieter sweeps gather into chromatic and microtonal friction.
+ const c2Start=cycle.duration+20*16*step,c2End=c2Start+64*step;
+ const sweepPitches=[38,38.35,39,39.7,40,40.3,41,42.15];
+ for(let i=0;i<sweepPitches.length;i++){
+  const t=c2Start+i*4*step;
+  events.push([t,'polysynth',sweepPitches[i],c2End-t-.04,.02,(i-3.5)*.06,1540,{from:[-7,6,-5,4,-3,6,-6,3][i],landing:14*step}]);
+ }
+ const put=(bar,slot,kind,pitch,length,velocity,pan=0)=>{
+  const t=start+(bar*16+slot)*step;
+  events.push([t,kind,pitch,Math.min(length*step,duration-step*.2-t),velocity,pan,1530]);
+ };
+ // G: double-kick sixteenths, blast-like snare answers and chromatic descent.
+ for(let bar=0;bar<8;bar++){
+  const variation=bar>=4,closing=bar===7;
+  // Alternate G1/C#2 downbeats in GUDECO's startup timbre with a resonant bite.
+  const gate=4*step;
+  events.push([start+bar*16*step,'bassline',bar%2===0?-2:4,gate+.20,.52,0,1497,{gate,bite:true}]);
+  // Two half-note Rhodesia tones per bar; repeat G/F#/A/G# twice in G and G2.
+  for(let half=0;half<2;half++)events.push([
+   start+(bar*16+half*8)*step,'organ',[34,33,36,35][(bar*2+half)%4],8*step,.20,.12,1487
+  ]);
+  // Octave-up quarter notes above the slower melody.
+  for(let beat=0;beat<4;beat++)events.push([
+   start+(bar*16+beat*4)*step,'organ',[46,45,48,47][beat],4*step,.16,-.14,1487,undefined,'street-G-high'
+  ]);
+  // Rising voicings stay below the G5/F#5/A5/G#5 melody:
+  // C3/F#3, D3/G#3, F#3/D4/E4, G#3/F4/G4.
+  const chord=[[3,9],[5,11],[9,17,19],[11,20,22]][bar%4];
+  for(let octave=0;octave<3;octave++)events.push([
+   start+bar*16*step,'organ',chord.map(n=>n+octave*12),16*step,.22,[.03,-.08,.10][octave],1489,
+   octave===2?{swell:true}:undefined,'street-G-chords'
+  ]);
+  // All four G2 chords swell two octaves above, approaching from 45 cents below.
+  if(variation)for(const note of chord)for(const octave of (bar>=6?[24,12]:[24]))events.push([
+   start+bar*16*step,'lahopterix',note+octave,16*step,bar>=6?.065:.10,bar%2===0?-.60:.60,1531
+  ]);
+  for(let slot=0;slot<16;slot++){
+   put(bar,slot,'bassline',(bar%2===0?10:6)-slot+(variation&&slot>=12?12:0),.82,slot%4===0?.78:.60);
+   put(bar,slot,'kick',-5,.85,slot%4===0?.82:.62);
+  }
+  for(const slot of (variation?[2,4,7,10,12,15]:bar%2===0?[4,6,12,14]:[2,4,6,10,12,14]))if(!closing||slot<8)put(bar,slot,'snare',-2,.9,slot%4===0?.78:.53);
+  // G2 sixteenth hats remain audible over the dense mix, then stop for the final fill.
+  for(let slot=0;slot<(closing?8:16);slot+=variation?1:2)put(bar,slot,'hat',-4,variation?.65:.4,variation?(slot%2?.72:.94):(slot%2?.21:.32),.2);
+  if(closing)for(let i=0;i<8;i++)put(bar,8+i,i<2||i>=6?'snare':'tom',i<2||i>=6?-2:-3-(i-2)*2,.8,.57+i*.035,(i-3.5)*.035);
+  put(bar,0,'cymbal',-4,5,.23,-.2);
+  if(bar%2===0)put(bar,0,'polysynth',variation?[-2,4,10,11,17]:bar===0?[-2,5,10,11,16]:[-2,4,9,10,15],31.8,bar===0?.24:.28,bar%4===0?-.12:.12);
+ }
+ return {duration,sectionBars:4,form:[...cycle.form,...cycle.form.map(p=>p[0]+'2'+p.slice(1)),'G','G2'],
+  activeWindows:[...cycle.activeWindows,...cycle.activeWindows.map(w=>w.map(t=>t+cycle.duration)),[start,duration]],
+  events:events.sort((a,b)=>a[0]-b[0])};
 }
 
 // Original 110 BPM industrial synth song: rapid minor bass, half-time drums.
