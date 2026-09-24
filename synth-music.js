@@ -664,7 +664,7 @@ export function arrangeStreetCycle(source){
      for(let i=0;i<5;i++)events.push([dest,'lahopterix',31+i,sectionTime-step,.055,(i-2)*.08,1520,{ringHz:47}]);
     }
     // Rising dissonant texture builds drama without changing the bass motif.
-    add(bar*16*step,'pad',-2,12,.16+bar*.045,1100);
+    add(bar*16*step,'pad',-2,12,(.16+bar*.045)*1.6,1100);
     add((bar*16+4)*step,'metal',4,5,.15+bar*.045,1101);
     if(bar>=2)add((bar*16+12)*step,'metal',16,2,.23+bar*.025,1102);
    }
@@ -738,9 +738,11 @@ export function arrangeStreet(source){
  // G: double-kick sixteenths, blast-like snare answers and chromatic descent.
  for(let bar=0;bar<8;bar++){
   const variation=bar>=4,closing=bar===7;
-  // Alternate G1/C#2 downbeats in GUDECO's startup timbre with a resonant bite.
+  // Alternate G1/C#2; G2 adds tritone, octave and octave-plus-tritone layers.
   const gate=4*step;
-  events.push([start+bar*16*step,'bassline',bar%2===0?-2:4,gate+.20,.52,0,1497,{gate,bite:true}]);
+  const biteRoot=bar%2===0?-2:4;
+  events.push([start+bar*16*step,'bassline',biteRoot,gate+.20,.52,0,1497,{gate,bite:true}]);
+  if(variation)for(const [interval,level]of [[6,.22],[12,.18],[18,.14]])events.push([start+bar*16*step,'bassline',biteRoot+interval,gate+.20,level,0,1497,{gate,bite:true,harmony:true,interval}]);
   // Two half-note Rhodesia tones per bar; repeat G/F#/A/G# twice in G and G2.
   for(let half=0;half<2;half++)events.push([
    start+(bar*16+half*8)*step,'organ',[34,33,36,35][(bar*2+half)%4],8*step,.20,.12,1487
@@ -752,6 +754,24 @@ export function arrangeStreet(source){
   // Rising voicings stay below the G5/F#5/A5/G#5 melody:
   // C3/F#3, D3/G#3, F#3/D4/E4, G#3/F4/G4.
   const chord=[[3,9],[5,11],[9,17,19],[11,20,22]][bar%4];
+  // G/G2 follow D2's thumb-led picking, using the sounding Rhodesia harmony.
+  const harpClasses=new Set(chord.flatMap(n=>[-12,-2,21,5].map(interval=>((n+interval)%12+12)%12)));
+  // Continue the register climb through G2 instead of returning to G's low strings.
+  const harpFloor=bar*7,harpPitches=Array.from({length:25},(_,i)=>harpFloor+i).filter(n=>harpClasses.has(n%12));
+  const harpVoicing=Array.from({length:6},(_,i)=>harpPitches[Math.round(i*(harpPitches.length-1)/5)]);
+  const harpStart=start+bar*16*step,harpStop=duration-.015;
+  for(const [i,string] of [0,2,4,2,1,3,5,3].entries()){
+   const offset=i*2*step+[0,.009,-.004,.006,0,.011,-.003,.005][i];
+   const note=[harpStart+offset,'polysynth',harpVoicing[string],16*step-offset-.015,
+    .17*[1,.76,.88,.70,.93,.78,.91,.67][i]*[1,.87,.65,.46,.38,.31,.25,.20][bar],-.22+string*.088,1550,{strumStart:harpStart,section:variation?'G2':'G'}];
+   events.push(note);
+   // Same dotted-eighth delay as D2: four taps, each at 52% of the last.
+   for(let tap=1;tap<=4;tap++){
+    const onset=note[0]+tap*3*step,remaining=harpStop-onset;
+    if(remaining<.025)continue;
+    events.push([onset,...note.slice(1,3),Math.min(note[3],remaining),note[4]*.52**tap,note[5],1550,{...note[7],echoTap:tap}]);
+   }
+  }
   for(let octave=0;octave<3;octave++)events.push([
    start+bar*16*step,'organ',chord.map(n=>n+octave*12),16*step,.22,[.03,-.08,.10][octave],1489,
    octave===2?{swell:true}:undefined,'street-G-chords'
