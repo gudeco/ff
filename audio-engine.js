@@ -165,13 +165,19 @@ export class SoundEngine{
   this.levelMeter.getFloatTimeDomainData(this.levelData);
   let power=0;for(const value of this.levelData)power+=value*value;power/=this.levelData.length;
   if(power<.00002)return;
-  this.levelPower=this.levelPower?this.levelPower*.98+power*.02:power;
+  const street=this.theme==='street';
+  // Catch a dense entrance promptly; recover slowly through quiet passages.
+  // Otherwise E's lower level over-boosts the sustained cluster and drums in F.
+  const powerRate=street?.08:.02;
+  this.levelPower=this.levelPower?this.levelPower*(1-powerRate)+power*powerRate:power;
   const title=this.theme==='title';
   const target=Math.max(title?.15:.35,Math.min(title?2.5:3.5,(title?.075:.10)/Math.sqrt(this.levelPower)));
-  this.levelGain=this.levelGain*.99+target*.01;
-  this.musicLevel.gain.setTargetAtTime(this.levelGain,this.ctx.currentTime,.5);
+  const reducing=target<this.levelGain,gainRate=street?(reducing?.14:.006):.01;
+  this.levelGain=this.levelGain*(1-gainRate)+target*gainRate;
+  const response=street&&reducing?.08:.5;
+  this.musicLevel.gain.setTargetAtTime(this.levelGain,this.ctx.currentTime,response);
   // Recorded mixes bypass the .72 synth master attenuation.
-  this.recordedLevel.gain.setTargetAtTime(this.levelGain*.72,this.ctx.currentTime,.5);
+  this.recordedLevel.gain.setTargetAtTime(this.levelGain*.72,this.ctx.currentTime,response);
  }
  startTimer(){if(this.timer!==null)return;if(this.nextTime<this.ctx.currentTime)this.nextTime=this.ctx.currentTime+.035;this.schedule();this.timer=setInterval(()=>{this.updateMusicLevel();this.schedule();},25);}
  stopTimer(){if(this.timer!==null)clearInterval(this.timer);this.timer=null;}
