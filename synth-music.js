@@ -31,7 +31,8 @@ export function synthNote(engine,event,time){
   gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
  }else if(kind==='lahopterix'){
   gain.gain.linearRampToValueAtTime(level,time+.43);
-  gain.gain.setValueAtTime(level*.7,time+duration-.35);
+  if(event[7]?.fadeOut)gain.gain.linearRampToValueAtTime(level*.7,time+duration*(1-event[7].fadeOut));
+  else gain.gain.setValueAtTime(level*.7,time+duration-.35);
   gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
  }else if(kind==='lead'){
   gain.gain.linearRampToValueAtTime(level,time+duration*.26);
@@ -538,11 +539,8 @@ export function arrangeStreet(source){
    events.push([dest+local,kind,pitch,duration,vel,0,lane]);
   }
   for(let bar=0;bar<4;bar++){
-   if((part==='B'||part==='C')&&(bar===0||bar===2))for(const slot of [0,8]){
-    const gate=4*step;
-    events.push([dest+(bar*16+slot)*step,'bassline',-2,gate+.20,.32,0,1497,{gate}]);
-   }
-   if(power&&bar===1)events.push([dest+bar*16*step,'organ',[34,40],16*step,.15,.08,1498]);
+   // The second G5/C#6 statement adds D6/G#6 above the original dyad.
+   if(power&&bar===1)events.push([dest+bar*16*step,'organ',prime?[34,40,41,47]:[34,40],16*step,.15,.08,1498]);
    if(part==='A'&&bar===0)for(const slot of [0,4]){
     const gate=4*step;
     events.push([dest+slot*step,'bassline',-2,gate+.20,.32,0,1497,{gate}]);
@@ -809,7 +807,7 @@ export function createHospitalTheme(){
  // A*': E5 approaches from above, answered one bar later by E5 sliding to D5.
  for(const lead of starred.filter(e=>e[1]==='lead'&&e[0]>=firstCycle+base.duration&&e[0]<firstCycle+2*base.duration)){
   events.push([lead[0],'lahopterix',lead[2]+12,lead[3],.30,.12,1512]);
-  events.push([lead[0]+16*step,'lahopterix',29,Math.min(lead[3],firstCycle+2*base.duration-lead[0]-16*step),.30,.12,1512]);
+  events.push([lead[0]+16*step,'lahopterix',29,Math.min(lead[3],firstCycle+2*base.duration-lead[0]-16*step),.30,.12,1512,{fadeOut:.45}]);
  }
  // C: a relentless E pedal and straight, driving punk drums, with low drifting tension.
  const bridgeStart=base.duration*8,duration=base.duration*9;
