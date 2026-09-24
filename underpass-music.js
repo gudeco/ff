@@ -102,7 +102,86 @@ export function createUnderpassTheme(){
  for(let b=0;b<2;b++)for(let n=0;n<32;n++){
   const step=b*32+n,pitch=nextArpPitch();
   const [low,high,resonance,envAmount]=arpFilters[b];
-  events.push([(64+b*4+n*.125)*beat,'cyberarp',pitch,.16*beat,step%4===0?.24:.18,n%2?.2:-.2,1707,{section:'A′',formIndex:2,bar:16+b,chord:harmony[b],arpSweep:{start:(64+b*4)*beat,period:8*beat,low,high,resonance,envAmount,falling:b%2===1},vibrato:{rate:4.7,depth:5}}]);
+  events.push([(64+b*4+n*.125)*beat,'cyberarp',pitch,.16*beat,step%4===0?.24:.18,n%2?.2:-.2,1707,{section:'A′',formIndex:2,bar:16+b,chord:harmony[b],echoTaps:4,echoStep:.75*beat,arpSweep:{start:(64+b*4)*beat,period:8*beat,low,high,resonance,envAmount,falling:b%2===1},vibrato:{rate:4.7,depth:5}}]);
+ }
+ // Add these details after building reprises, so starred sections stay intact.
+ for(const e of events)if(e[1]==='cyberlead'&&e[7].formIndex===0){e[1]='vstdefault';if(e[2]===2){e[2]=-10;e[7]={...e[7],filterBite:true};}}
+ for(const e of events)if(e[1]==='vstdefault'&&e[7].formIndex===0&&e[2]!==-10)e[7]={...e[7],echoTaps:4,echoStep:.75*beat};
+ // Reinforce only A's B1 notes with the original lead voice.
+ for(const e of events.filter(e=>e[1]==='vstdefault'&&e[7].formIndex===0&&e[2]===-10))events.push([e[0],'cyberlead',e[2],e[3],e[4],.12,1704,{section:'A',formIndex:0,bar:e[7].bar,chord:e[7].chord,lowLeadLayer:true,filterBite:true}]);
+ for(const e of events)if(e[7].formIndex===0&&e[2]===-10&&['vstdefault','cyberlead'].includes(e[1]))e[4]*=.9;
+ // B2 on beat 1 (A2 in bar 7) leads into B1 (A1 in bar 7), using the same two voices.
+ for(const e of events.filter(e=>e[7].formIndex===0&&e[2]===-10&&['vstdefault','cyberlead'].includes(e[1])))events.push([e[0]-.5*beat,e[1],e[7].bar===6?0:2,.5*beat,e[4]*.75,e[5],e[6],{...e[7],lowLeadLayer:false,b2Pickup:true}]);
+ for(const e of events)if(e[7].formIndex===0&&e[7].bar===6&&e[2]===-10&&['vstdefault','cyberlead'].includes(e[1]))e[2]=-12;
+ // A′ also carries A's octave-drop openings, alongside its existing arrangement.
+ for(const e of events.filter(e=>e[7].formIndex===0&&['vstdefault','cyberlead'].includes(e[1])&&(e[7].b2Pickup||e[2]<=-10)))events.push([e[0]+64*beat,...e.slice(1,7),{...e[7],section:'A′',formIndex:2,bar:e[7].bar+16,lowLeadLayer:false,b2Pickup:false,aPrimeLowMotif:true}]);
+ // A′ bar 3: G5 eighths, opening/closing filter and a fading final half-bar.
+ for(let n=0;n<8;n++)events.push([(72+n*.5)*beat,'cyberarp',34,.46*beat,[.40,.40,.40,.40,.32,.23,.14,.05][n],0,1707,{section:'A′',formIndex:2,bar:18,chord:harmony[2],lowGPulse:true,echoTaps:4,echoStep:.75*beat,arpSweep:{start:72*beat,period:4*beat,low:280,high:2200,resonance:1.2,envAmount:1.1},vibrato:{rate:4.7,depth:3}}]);
+ // Repeat the two-bar arp and G pulse in bars 5–7, preserving their note order.
+ for(const e of events.filter(e=>e[1]==='cyberarp'&&e[7].formIndex===2&&e[7].bar<=18)){
+  events.push([e[0]+16*beat,...e.slice(1,7),{...e[7],bar:e[7].bar+4,arpSweep:{...e[7].arpSweep,start:e[7].arpSweep.start+16*beat}}]);
+ }
+ // Keep just the sustained E4 / C#5 targets, with their swell and delay.
+ for(const [bar,target]of [[19,19],[23,28]]){
+  const pos=1.5;
+  events.push([(bar*4+pos)*beat,'cyberarp',target,(4-pos)*beat,.28,.15,1707,{section:'A′',formIndex:2,bar,sustainFade:true,swellIn:true,clusterFadeAt:(bar*4+3)*beat,echoTaps:4,echoStep:1.5*beat,echoDecay:.68,echoGain:.70,arpSweep:{start:bar*4*beat,period:8*beat,low:650,high:2800,resonance:.8,envAmount:1.05,falling:true},vibrato:{rate:4.7,depth:5}}]);
+ }
+ // Subtle Lahopterix pairs rise from an octave below, reaching their targets
+ // with each sustained target note, then hold and fade together.
+ for(const [bar,notes]of [[19,[26]],[23,[23,28]]])for(const [voice,pitch]of notes.entries())events.push([bar*4*beat,'lahopterix',pitch,4*beat,.09,voice?.18:-.18,1707,{section:'A′',formIndex:2,bar,glideFromBelow:12,glideSeconds:1.5*beat,fadeOut:.25}]);
+ // Barely audible upper Lahopterix voices follow the same rising envelope.
+ for(const [bar,pitch]of [[19,31],[19,43],[19,39],[23,40]])events.push([bar*4*beat,'lahopterix',pitch,4*beat,.018,0,1707,{section:'A′',formIndex:2,bar,upperLahopterix:true,glideFromBelow:12,glideSeconds:1.5*beat,fadeOut:.25}]);
+ // Warm Thanathoa replies: B5–A5–G5 first, A5–G5–F5 over G#–C#.
+ for(const [bar,transpose]of [[19,0],[23,-2]])for(let pulse=0;pulse<4;pulse++)for(const [n,pitch]of [38,36,34].entries())events.push([(bar*4+pulse)*beat+n*tripletTemplate[3]/6,'thanathoa',pitch+transpose,tripletTemplate[3]/6,bar===23?.075:.14,.12,1706,{section:'A′',formIndex:2,bar,warmTriplet:true,...(bar===23?{phraseFade:{start:(bar*4+2.5)*beat,end:(bar*4+3.8)*beat}}:{}),warmFilter:{start:bar*4*beat,duration:4*beat,low:260,high:1150},feedbackDelay:{time:.75*beat,feedback:bar===23?.45:.72,wet:bar===23?.25:.45,cutoff:950}}]);
+ // A high C#6 Rhodesia swell covers only beats 3–4 of the second Lahopterix bar.
+ events.push([94*beat,'organ',40,2*beat,.055,-.12,1707,{section:'A′',formIndex:2,bar:23,rhodesiaSwell:true,swell:true,swellRise:beat}]);
+ // Compare each even bar with its preceding odd bar: preserve existing fills
+ // and C's alternating kick pattern instead of piling another variation on top.
+ const drums=new Set(['kick','snare','hat']);
+ const signature=bar=>JSON.stringify(events.filter(e=>e[7].bar===bar&&drums.has(e[1])).map(e=>[e[1],Math.round((e[0]/beat-bar*4)*1000),e[3],e[4]]));
+ for(let bar=1;bar<48;bar+=2){
+  if(signature(bar)!==signature(bar-1))continue;
+  const template=events.find(e=>e[7].bar===bar&&e[1]==='kick');
+  for(const [pos,velocity]of (bar%4===1?[[3.25,.48],[3.75,.60]]:[[.75,.52],[2.75,.46]])){
+   if(events.some(e=>e[7].bar===bar&&e[1]==='kick'&&Math.abs(e[0]/beat-bar*4-pos)<.001))continue;
+   events.push([(bar*4+pos)*beat,'kick',-2,.25*beat,velocity,0,1701,{...template[7],kickVariation:true}]);
+  }
+ }
+ // Inverted Hot Sauce Groove: the supplied bar played at half speed over two bars.
+ // Beat 1 has eight 32nds; beat 2 starts with four 32nds, then two 16ths.
+ for(let i=events.length-1;i>=0;i--)if(events[i][7].formIndex===8&&drums.has(events[i][1]))events.splice(i,1);
+ for(let bar=64;bar<72;bar+=2){
+  const put=(pos,kind,len,velocity,extra={})=>events.push([(bar*4+pos*2)*beat,kind,kind==='kick'?-2:kind==='snare'?-3:0,len*2*beat,velocity,kind==='hat'?.12:0,1701,{section:'A*′',formIndex:8,bar:bar+Math.floor(pos/2),groove:'inverted-hot-sauce',...extra}]);
+  for(const pos of [0,.375,.5,.875,2])put(pos,'kick',.45,pos===0||pos===2?.82:.66);
+  for(const pos of [.125,.25,.625,.75])put(pos,'snare',.12,.20,{ghost:true});
+  for(const pos of [1,3])put(pos,'snare',.34,.76,{accent:true});
+  for(const pos of [0,.375,.5,1,1.125,1.25,1.375,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75]){
+   const open=pos===1.75,accent=pos===1||pos===1.5||pos===3;
+   put(pos,'hat',open?.25:.095,open?.48:accent?.50:.28,{articulation:open?'open-hat':'closed-hat',accent});
+  }
+ }
+ // Phrase-ending snare fills are installed after reprises are copied.
+ // Replace snares inside each fill window; preserve the kick and hi-hat groove.
+ const fill=(index,ending,span,hits,id)=>{
+  const start=(index*32+ending-span)*beat,end=(index*32+ending)*beat;
+  for(let i=events.length-1;i>=0;i--)if(events[i][7].formIndex===index&&events[i][1]==='snare'&&events[i][0]>=start&&events[i][0]<end)events.splice(i,1);
+  for(const [pos,velocity]of hits){const at=start+pos*beat;
+   events.push([at,'snare',-3,Math.min(.14*beat,end-at),velocity,0,1701,{section:index===8?'A*′':'C',formIndex:index,bar:Math.floor(at/(4*beat)+1e-8),snareFill:id,fillSpan:span,...(index===8?{groove:'inverted-hot-sauce'}:{})}]);
+  }
+ };
+ fill(8,8,.5,[[0,.42],[.25,.72]],'hot-1');
+ fill(8,16,1,[[0,.40],[1/3,.56],[2/3,.78]],'hot-2');
+ fill(8,24,2,[[0,.74],[.5,.30],[.75,.46],[1.25,.38],[1.5,.58],[1.75,.78]],'hot-3');
+ fill(8,32,4,[...Array.from({length:8},(_,n)=>[n*.25,n%4===0?.76:.46+n*.02]),...Array.from({length:12},(_,n)=>[2+n*.125,n%4===0?.78:.48+n*.014]),[3.5,.76],[3.75,.84]],'hot-4');
+ fill(4,8,.75,[[0,.34],[.25,.50],[.5,.76]],'c-1');
+ fill(4,16,1.5,[[0,.66],[.5,.30],[.75,.45],[1,.58],[1.25,.80]],'c-2');
+ fill(4,24,.75,[[0,.34],[.25,.50],[.5,.76]],'c-3');
+ fill(4,32,1,Array.from({length:6},(_,n)=>[n/6,.40+n*.08]),'c-4');
+ // C**′: extra 4& backbeats; retain and accent bar 8's existing fill hit.
+ for(const [bar,pos]of [[81,3.5],[85,3],[85,3.5],[87,3.5]]){
+  const at=(bar*4+pos)*beat,existing=events.find(e=>e[1]==='snare'&&e[7].formIndex===10&&Math.abs(e[0]-at)<1e-8);
+  if(existing){existing[4]=Math.max(existing[4],.76);existing[7]={...existing[7],endingAccent:true};}
+  else events.push([at,'snare',-3,.22*beat,.76,0,1701,{section:'C**′',formIndex:10,bar,endingAccent:true}]);
  }
  const form=['A','B',"A′","B′",'C','D','A**','B*','A*′','B**′','C**′'],sections=form.map((name,index)=>({name,index,start:index*32*beat,duration:32*beat,bars:8,meter:'4/4'}));
  // Section trims offset density as layers accumulate, without flattening accents.
