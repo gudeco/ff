@@ -1,11 +1,31 @@
 // Oscillators and generated noise only: no recorded instruments or audio files.
 export function synthNote(engine,event,time){
+ if(event[7]?.ornamentDelay){
+  const spec=event[7].ornamentDelay,c=engine.ctx,end=time+spec.end-event[0];
+  engine.ornamentBuses??=new Map();const key=Math.round(end*100000);
+  let bus=engine.ornamentBuses.get(key);
+  if(!bus){
+   const input=c.createGain(),out=c.createGain(),nodes=[input,out];
+   out.gain.setValueAtTime(1,time);out.gain.setValueAtTime(1,Math.max(time,end-.10));out.gain.linearRampToValueAtTime(0,end);
+   input.connect(out);out.connect(engine.musicInput||engine.music);
+   for(let tap=1;tap<=8;tap++){
+    const delay=c.createDelay(1),gain=c.createGain();delay.delayTime.value=spec.step*tap;gain.gain.value=.58*.86**(tap-1);
+    input.connect(delay);delay.connect(gain);gain.connect(out);nodes.push(delay,gain);
+   }
+   bus={ctx:c,music:input,musicInput:input,voices:engine.voices};engine.ornamentBuses.set(key,bus);
+   const timer=c.createOscillator(),mute=c.createGain();mute.gain.value=0;timer.connect(mute);mute.connect(out);
+   const cleanup={music:true,synth:true,stop:at=>{out.gain.cancelScheduledValues(at);out.gain.setTargetAtTime(0,at,.006);timer.stop(at+.04);}};
+   engine.voices.add(cleanup);timer.onended=()=>{for(const node of [...nodes,timer,mute])node.disconnect();bus.thanathoaReverb?.disconnect();engine.ornamentBuses.delete(key);engine.voices.delete(cleanup);};timer.start(time);timer.stop(end+.01);
+  }
+  return synthNote(bus,[...event.slice(0,7),{...event[7],ornamentDelay:undefined}],time);
+ }
  if(event[7]?.mixGain!==undefined){event=[...event];event[4]*=event[7].mixGain;}
  const [offset,kind,pitch,length,velocity,pan,lane]=event,c=engine.ctx;
  const cyber=kind.startsWith('cyber');
  if(kind==='mesotonya')return synthMesotonya(engine,event,time);
  if(kind==='acidbass')return synthAcidBass(engine,event,time);
  if(kind==='thanathoa'||kind==='vstdefault')return synthThanathoa(engine,event,time);
+ if(kind==='blattella')return synthBlattella(engine,event,time);
  const squareDouble=event[9]==='square-doubled';
  const underpassCrash=lane===1701&&kind==='hat'&&event[7]?.articulation==='crash-hat';
  const underpassLowTom=lane===1701&&kind==='tom'&&event[7]?.articulation==='low-tom';
@@ -244,13 +264,13 @@ export function synthNote(engine,event,time){
   // Share the four-tap return across the rapid arp notes to avoid a delay
   // network per 32nd note. Buffered repeats continue after each note ends.
   if(kind==='cyberarp'&&event[7]?.echoTaps===4){
-   const echoKey=event[7].sustainFade?'underpassSwellEcho':'underpassArpEcho';
+   const echoKey=event[7].sustainFade?'underpassSwellEcho':event[7].warmArp?'underpassWarmArpEcho':'underpassArpEcho';
    if(!engine[echoKey]){
     const input=c.createGain();input.gain.value=1;
     for(let tap=1;tap<=4;tap++){
      const delay=c.createDelay(4),repeat=c.createGain(),tone=c.createBiquadFilter();
      delay.delayTime.value=tap*event[7].echoStep;repeat.gain.value=(event[7].echoGain??.35)*(event[7].echoDecay??.55)**(tap-1);
-     tone.type='lowpass';tone.frequency.value=3500/(1+tap*.35);
+     tone.type='lowpass';tone.frequency.value=(event[7].echoCutoff??3500)/(1+tap*.35);
      input.connect(delay);delay.connect(tone);tone.connect(repeat);repeat.connect(engine.musicInput||engine.music);
     }
     engine[echoKey]=input;
@@ -916,9 +936,13 @@ export function arrangeStreet(source){
   events.push([start+bar*16*step,'bassline',biteRoot,gate+.20,.52,0,1497,{gate,bite:true}]);
   if(variation)for(const [interval,level]of [[6,.22],[12,.18],[18,.14]])events.push([start+bar*16*step,'bassline',biteRoot+interval,gate+.20,level,0,1497,{gate,bite:true,harmony:true,interval}]);
   // Two half-note Rhodesia tones per bar; repeat G/F#/A/G# twice in G and G2.
-  for(let half=0;half<2;half++)events.push([
-   start+(bar*16+half*8)*step,'organ',[34,33,36,35][(bar*2+half)%4],8*step,.20,.12,1487
-  ]);
+  for(let half=0;half<2;half++){
+   const onset=start+(bar*16+half*8)*step,pitch=[34,33,36,35][(bar*2+half)%4];
+   events.push([onset,'organ',pitch,8*step,.20,.12,1487]);
+   events.push([onset,'thanathoa',pitch,8*step,.30,-.12,1551,{section:variation?'G2':'G',rhodesiaDouble:true}]);
+   events.push([onset,'thanathoa',pitch-24,8*step,.38,.12,1552,{section:variation?'G2':'G',rhodesiaDouble:true,lowerDouble:true}]);
+   events.push([onset,'thanathoa',pitch-24,8*step,.24,half===0?-1:1,1553,{section:variation?'G2':'G',rhodesiaDouble:true,alternatingPan:true}]);
+  }
   // Octave-up quarter notes above the slower melody.
   for(let beat=0;beat<4;beat++)events.push([
    start+(bar*16+beat*4)*step,'organ',[46,45,48,47][beat],4*step,.16,-.14,1487,undefined,'street-G-high'
@@ -1191,6 +1215,43 @@ export function createHospitalTheme(){
  return {bpm:base.bpm,duration,form:[...form,'A*',"A*'",'B*',"B*'",'C'],sectionBars:8,events:events.sort((a,b)=>a[0]-b[0])};
 }
 
+// Blattella obscura, from the original QUAD-OSC preset. Keep its slow envelopes,
+// four oscillator voicing and 220 ms upward glide spanning seven semitones.
+function synthBlattella(engine,event,time){
+ const c=engine.ctx,gate=event[3],output=engine.musicInput||engine.music,nodes=[],sources=[],amps=[];
+ const low=c.createBiquadFilter(),high=c.createBiquadFilter(),dry=c.createGain(),wet=c.createGain();
+ low.type='lowpass';low.frequency.value=1800;low.Q.value=.9;
+ high.type='highpass';high.frequency.value=28;high.Q.value=.7;
+ dry.gain.value=1;wet.gain.value=0; // Keep this short-note adaptation inside its written gate, including ambience.
+ low.connect(high);high.connect(dry);dry.connect(output);high.connect(wet);nodes.push(low,high,dry,wet);
+ if(!engine.blattellaReverb){
+  const impulse=c.createBuffer(2,Math.ceil(c.sampleRate*3),c.sampleRate);let seed=86153;
+  for(let ch=0;ch<2;ch++){const data=impulse.getChannelData(ch);for(let i=0;i<data.length;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;data[i]=(seed/2147483648-1)*(1-i/data.length)**2;}}
+  engine.blattellaReverb=c.createConvolver();engine.blattellaReverb.buffer=impulse;engine.blattellaReverb.connect(output);
+ }
+ wet.connect(engine.blattellaReverb);
+ const patch=[['triangle',2,1,.85,5,-.04,.3,-12,-.35,.003],['triangle',2,1,.85,5,.04,.3,-12,.35,0],['sine',1.8,1.2,.8,5.5,0,.2,0,0,0],['square',.3,1.1,.4,6,.02,.1,7,0,0]];
+ for(const [type,attack,decay,sustain,release,detune,level,transpose,pan,phase]of patch){
+  const osc=c.createOscillator(),amp=c.createGain(),stereo=c.createStereoPanner(),start=time+phase,end=time+gate;
+  const hz=110*2**((event[2]+transpose+detune)/12),peak=.24*event[4]*level;
+  osc.type=type;osc.frequency.setValueAtTime(hz*2**(-7/12),start);osc.frequency.exponentialRampToValueAtTime(hz,start+.22);
+  // The preset's two-second attack never reaches useful level on this short riff.
+  // Scope the quicker swell to the score's explicit phrase adaptation.
+  const rise=event[7]?.phraseAttack?Math.min(attack,event[7].phraseAttack,gate*.45):attack;
+  const heldAt=t=>t<rise?peak*t/rise:peak*(1-(1-sustain)*Math.min(1,(t-rise)/decay));
+  amp.gain.setValueAtTime(0,start);
+  if(start+rise<end)amp.gain.linearRampToValueAtTime(peak,start+rise);
+  const fade=end-Math.min(.09,gate*.30);
+  if(start+rise+decay<fade)amp.gain.linearRampToValueAtTime(peak*sustain,start+rise+decay);
+  amp.gain.linearRampToValueAtTime(heldAt(Math.max(0,fade-start)),fade);amp.gain.linearRampToValueAtTime(0,end);
+  stereo.pan.value=pan;osc.connect(amp);amp.connect(stereo);stereo.connect(low);nodes.push(amp,stereo);amps.push(amp.gain);sources.push({osc,start,end:end+.001});
+ }
+ let ended=0,stopped=false;
+ const voice={music:true,synth:true,stop:at=>{if(stopped)return;stopped=true;for(const amp of amps){amp.cancelScheduledValues(at);amp.setTargetAtTime(0,at,.006);}for(const {osc}of sources)osc.stop(at+.04);}};
+ engine.voices.add(voice);
+ for(const {osc,start,end}of sources){osc.onended=()=>{osc.disconnect();if(++ended===sources.length){for(const node of nodes)node.disconnect();engine.voices.delete(voice);}};osc.start(start);osc.stop(end);}
+}
+
 // Thanathoa noctivaga, from Gudeco's FL9 preset / index (27).html.
 // Preserve the preset timbre; the score supplies note triggers instead of its arp.
 function synthThanathoa(engine,event,time){
@@ -1251,7 +1312,7 @@ function synthThanathoa(engine,event,time){
  const oscillators=defaultPatch?[[0,-.06,.28,-.2],[0,.06,.18,.2],[0,-.06,.28,-.2],[0,.06,.18,.2]]:[[-5,-.06,.28,-.2],[2,.06,.18,.2],[-24,-.06,.28,-.2],[-24,.06,.18,.2]];
  for(const [index,[transpose,detune,level,pan]]of oscillators.entries()){
   const osc=c.createOscillator(),amp=c.createGain(),stereo=c.createStereoPanner();osc.type='sawtooth';
-  osc.frequency.setValueAtTime(110*2**((event[2]+transpose+detune)/12),time);stereo.pan.value=pan;
+  osc.frequency.setValueAtTime(110*2**((event[2]+transpose+detune)/12),time);stereo.pan.value=event[7]?.alternatingPan?event[5]:pan;
   if(defaultPatch){
    const drift=.12+index*.06,glide=event[7]?.glideTo;
    const hzAt=t=>110*2**((event[2]+(glide===undefined?0:(glide-event[2])*Math.min(1,t/gate))+detune+.05*Math.sin(t*2*Math.PI*drift))/12);
@@ -1260,8 +1321,15 @@ function synthThanathoa(engine,event,time){
    for(let t=gate+.02;t<gate+.35;t+=.02)osc.frequency.exponentialRampToValueAtTime(hzAt(t),time+t);
   }
   const peak=.24*velocity*level,attack=Math.min(.02,gate),decayEnd=Math.min(.22,gate),held=gate<.22?peak*(1-.4*Math.max(0,gate-.02)/.2):peak*.6;
-  amp.gain.value=0;amp.gain.setValueAtTime(0,time);amp.gain.linearRampToValueAtTime(peak,time+attack);
-  amp.gain.linearRampToValueAtTime(held,time+decayEnd);amp.gain.setValueAtTime(held,time+gate);amp.gain.linearRampToValueAtTime(0,time+gate+.35);
+  amp.gain.value=0;amp.gain.setValueAtTime(0,time);
+  if(defaultPatch&&event[7]?.delayedSwell){
+   amp.gain.linearRampToValueAtTime(peak,time+Math.min(.10,gate*.65));
+   amp.gain.linearRampToValueAtTime(peak*.65,time+gate);
+   amp.gain.linearRampToValueAtTime(0,time+gate+.12);
+  }else{
+   amp.gain.linearRampToValueAtTime(peak,time+attack);
+   amp.gain.linearRampToValueAtTime(held,time+decayEnd);amp.gain.setValueAtTime(held,time+gate);amp.gain.linearRampToValueAtTime(0,time+gate+.35);
+  }
   osc.connect(amp);amp.connect(stereo);stereo.connect(filter);nodes.push(amp,stereo);sources.push(osc);envelopes.push(amp.gain);
  }
  let ended=0,stopped=false;const voice={music:true,synth:true,stop:at=>{if(stopped)return;stopped=true;for(const g of envelopes){g.cancelScheduledValues(at);g.setTargetAtTime(0,at,.006);}for(const o of sources)o.stop(at+.04);}};

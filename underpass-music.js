@@ -72,8 +72,16 @@ export function createUnderpassTheme(){
     events.push([(index*32+localBar*4+slot*2)*beat,e[1],pitch,2*beat,...e.slice(4,7),meta]);
    }else if(i===2&&e[1]==='thanathoa'){
     for(let n=0;n<3;n++)events.push([e[0]+shift+n*tripletTemplate[3]/6,e[1],tripletTemplate[2]+36-n*2,tripletTemplate[3]/6,e[4],e[5],e[6],{...meta,descendingTriplet:true,echoTaps:4,echoStep:.75*beat,slowFilter:{start:index*32*beat,duration:32*beat}}]);
+   }else if(i===3&&lead&&Math.abs(e[0]/beat%4-3)<1e-8){
+    // Turn the final F# into a compact F#–G–F# ornament within its existing slot.
+    for(const [offset,interval,length]of [[0,0,.25],[.25,1,.25],[.5,0,.5]])events.push([e[0]+shift+offset*e[3],e[1],pitch+interval,e[3]*length,...e.slice(4,7),{...meta,endingOrnament:true,ornamentDelay:{end:e[0]+shift+2.5*beat-.02,step:.1875*beat}}]);
    }else{
     events.push([e[0]+shift,e[1],pitch,...e.slice(3,7),{...meta,...(i===0&&e[1]==='cyberlead'?{fadeIn:true,voice:0}:{})}]);
+    if(i===1&&e[1]==='cyberlead')events.push([e[0]+shift+.06,'vstdefault',pitch,e[3]-.06,.20,.12,1710,{...meta,delayedSwell:true}]);
+    if(i===0&&e[1]==='cyberlead'){
+     const entry=Math.min(.24,e[3]*.55)+.025;
+     events.push([e[0]+shift+entry,'vstdefault',pitch,e[3]-entry,.20,.12,1710,{...meta,delayedSwell:true}]);
+    }
     if(i===0&&e[1]==='cyberlead')events.push([e[0]+shift,e[1],pitch-5,e[3],e[4]*.7,.12,e[6],{...meta,fadeIn:true,voice:1}]);
    }
   }
@@ -96,13 +104,13 @@ export function createUnderpassTheme(){
   return lastArpPitch=choices[Math.floor(arpSeed/4294967296*choices.length)];
  };
  const arpFilters=[
-  [650,3000,.65,1.12],[350,1900,.9,1.25],[250,1300,.55,1.1],[500,2400,1.05,1.3],
+  [450,1800,.45,1.05],[280,1300,.55,1.08],[250,1300,.55,1.1],[500,2400,1.05,1.3],
   [800,3400,.6,1.1],[1400,4400,.55,1.08],[600,2600,.85,1.2],[350,1700,.65,1.15]
  ];
  for(let b=0;b<2;b++)for(let n=0;n<32;n++){
   const step=b*32+n,pitch=nextArpPitch();
   const [low,high,resonance,envAmount]=arpFilters[b];
-  events.push([(64+b*4+n*.125)*beat,'cyberarp',pitch,.16*beat,step%4===0?.24:.18,n%2?.2:-.2,1707,{section:'A′',formIndex:2,bar:16+b,chord:harmony[b],echoTaps:4,echoStep:.75*beat,arpSweep:{start:(64+b*4)*beat,period:8*beat,low,high,resonance,envAmount,falling:b%2===1},vibrato:{rate:4.7,depth:5}}]);
+  events.push([(64+b*4+n*.125)*beat,'cyberarp',pitch,.16*beat,step%4===0?.24:.18,n%2?.2:-.2,1707,{section:'A′',formIndex:2,bar:16+b,chord:harmony[b],warmArp:true,echoTaps:4,echoStep:.75*beat,echoGain:.50,echoDecay:.65,echoCutoff:1800,arpSweep:{start:(64+b*4)*beat,period:8*beat,low,high,resonance,envAmount,falling:b%2===1},vibrato:{rate:4.7,depth:5}}]);
  }
  // Add these details after building reprises, so starred sections stay intact.
  for(const e of events)if(e[1]==='cyberlead'&&e[7].formIndex===0){e[1]='vstdefault';if(e[2]===2){e[2]=-10;e[7]={...e[7],filterBite:true};}}
@@ -172,7 +180,8 @@ export function createUnderpassTheme(){
  fill(8,8,.5,[[0,.42],[.25,.72]],'hot-1');
  fill(8,16,1,[[0,.40],[1/3,.56],[2/3,.78]],'hot-2');
  fill(8,24,2,[[0,.74],[.5,.30],[.75,.46],[1.25,.38],[1.5,.58],[1.75,.78]],'hot-3');
- fill(8,32,4,[...Array.from({length:8},(_,n)=>[n*.25,n%4===0?.76:.46+n*.02]),...Array.from({length:12},(_,n)=>[2+n*.125,n%4===0?.78:.48+n*.014]),[3.5,.76],[3.75,.84]],'hot-4');
+ // One bar: 16ths, 32nds, 64ths, a half-beat of 32nds, then two 16ths.
+ fill(8,32,4,[...Array.from({length:4},(_,n)=>[n*.25,n===0?.76:.50+n*.025]),...Array.from({length:8},(_,n)=>[1+n*.125,n%4===0?.78:.50+n*.012]),...Array.from({length:16},(_,n)=>[2+n*.0625,n%4===0?.76:.44+n*.009]),...Array.from({length:4},(_,n)=>[3+n*.125,n===0?.78:.58+n*.025]),[3.5,.76],[3.75,.84]],'hot-4');
  fill(4,8,.75,[[0,.34],[.25,.50],[.5,.76]],'c-1');
  fill(4,16,1.5,[[0,.66],[.5,.30],[.75,.45],[1,.58],[1.25,.80]],'c-2');
  fill(4,24,.75,[[0,.34],[.25,.50],[.5,.76]],'c-3');
