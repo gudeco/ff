@@ -52,7 +52,15 @@ export function createUnderpassTheme(){
   const put=(pos,kind,pitch,len,velocity,lane,extra={})=>events.push([start+pos*beat,kind,pitch,len*beat,velocity,0,lane,{...meta,...extra}]);
   for(const pos of [0,1,2,3])put(pos,'kick',-2,.55,.88,1701);
   for(const pos of [1,3])put(pos,'snare',-3,.34,.72,1701);
-  for(let n=0;n<16;n++)put(n*.25,'hat',0,n%4===2?.18:.09,n%4===2?.52:n%2?.22:.35,1701);
+  if(b<4){
+   for(let n=0;n<16;n++)put(n*.25,'hat',0,n%4===2?.18:.09,n%4===2?.52:n%2?.22:.35,1701);
+  }else{
+   // Final two acid cycles: eighths against eighth-note triplets, repeating each beat.
+   for(let pulse=0;pulse<4;pulse++)for(const divisions of [2,3])for(let n=0;n<divisions;n++){
+    put(pulse+n/divisions,'hat',0,divisions===2?.13:.08,divisions===2?(n===0?.30:.40):(n===0?.23:n===1?.36:.29),1701,{hatPolyrhythm:divisions});
+    events.at(-1)[5]=divisions===2?-.24:.24;
+   }
+  }
   if(b===7)for(const pos of [3.5,3.75])put(pos,'snare',-3,.15,.42,1701);
   const notes=acidPatterns[b%2].map((pitch,n)=>({pitch,at:n*.25*beat,accent:[0,6,10,14].includes(n),slide:[2,6,7,12,13].includes(n),gate:.72}));
   put(0,'acidbass',notes[0].pitch,4,.35,1702,{notes,step:.25*beat,brightness:.65+b*.11});
@@ -64,6 +72,7 @@ export function createUnderpassTheme(){
  for(const [i,sourceIndex]of [0,1,2,3,4].entries()){
   const index=6+i,name=['A**','B*','A*′','B**′','C**′'][i],shift=(index-sourceIndex)*32*beat;
   for(const e of baseEvents.filter(e=>e[7].formIndex===sourceIndex)){
+   if(i===2&&e[1]==='cyberlead')continue; // Let the Thanathoa triplets lead A*′ alone.
    const lead=['cyberlead','thanathoa'].includes(e[1]),meta={...e[7],section:name,formIndex:index,bar:e[7].bar+(index-sourceIndex)*8};
    if(i===3&&lead&&[3,7].includes(e[7].bar%8))continue;
    const pitch=lead?e[2]+(i===1?0:i===2&&e[1]==='thanathoa'?24:12):e[2];
@@ -96,6 +105,66 @@ export function createUnderpassTheme(){
    events.push([(index*32+b*4)*beat,'acidbass',notes[0].pitch,4*beat,.45,0,1702,{section:name,formIndex:index,bar:index*8+b,chord,notes,step:.25*beat,brightness:.65+b*.07}]);
   }
  }
+ // First C only: support the last chromatic phrase with the earlier E–B–G–B pad.
+ for(const e of events)if(e[7].formIndex===4&&e[7].bar===38&&e[1]==='cyberpad')e[2]=[-17,-10,-2,2];
+ // B**′: open root/fifth voicings; preserve both lead lines and their ornaments.
+ const bOpenRoots=[-5,-7,-9,-10,-5,-12,-9,-10];
+ const bOpenNames=['E(no3)','D(no3)','C(no3)','B(no3)','E(no3)','A(no3)','C(no3)','B(no3)'];
+ // Ascending tops B2–D3–G3–B3–E4–A4–C5–F#5; the doubled pads sound an octave above too.
+ const bPadTops=[2,5,10,14,19,24,27,33];
+ for(let bar=0;bar<8;bar++){
+  const root=bOpenRoots[bar],name=bOpenNames[bar],oldRoot=roots[8+bar],top=bPadTops[bar];
+  const pad=Array.from({length:37},(_,n)=>top-36+n).filter(p=>[0,7].includes(((p-root)%12+12)%12)).slice(-4);
+  extraHarmony[24+bar]=name;let pulse=0;
+  for(const e of events.filter(e=>e[7].formIndex===9&&e[7].bar%8===bar)){
+   if(['cyberlead','thanathoa'].includes(e[1]))continue;
+   e[7]={...e[7],chord:name};
+   if(e[1]==='cyberpad'){
+    e[2]=pad;
+    events.push([e[0],e[1],pad.map(p=>p+12),e[3],e[4]*.75,-e[5],e[6],{...e[7],upperPad:true}]);
+   }
+   if(e[1]==='cyberbass')e[2]+=root-oldRoot;
+   if(e[1]==='cyberpulse')e[2]=root+[7,12,19][pulse++%3]+12;
+   if(e[1]==='acidbass'){
+    const acidIntervals={13:19,15:12,1:7};
+    e[7].notes=e[7].notes.map(note=>{const interval=note.pitch-oldRoot;return {...note,pitch:root+(acidIntervals[interval]??interval)};});
+    e[2]=e[7].notes[0].pitch;
+   }
+  }
+  const start=(72+bar)*4*beat;
+  events.push([start,'vstdefault',root-12,3.85*beat,.26,0,1711,{section:'B**′',formIndex:9,bar:72+bar,chord:name,harmonyBass:true}]);
+ }
+ // A** bars 3–4: A9, with root/fifth/ninth/seventh movement in the acid bass.
+ for(const bar of [2,3]){
+  extraHarmony[bar]='A9';
+  for(const e of events.filter(e=>e[7].formIndex===6&&e[7].bar%8===bar)){
+   if(['cyberlead','vstdefault'].includes(e[1]))continue;
+   e[7]={...e[7],chord:'A9'};
+   if(e[1]==='cyberpad')e[2]=[0,4,7,10,14];
+   if(e[1]==='cyberbass')e[2]+=5;
+   if(e[1]==='acidbass'){
+    e[7].notes=e[7].notes.map(note=>{const interval=note.pitch+5;return {...note,pitch:({13:14,15:10,1:2}[interval]??interval)};});
+    e[2]=e[7].notes[0].pitch;
+   }
+  }
+ }
+ // A** bars 7–8: A9(no3), voiced A–E–G–B with no third in either bass.
+ for(const bar of [6,7]){
+  extraHarmony[bar]='A9(no3)';
+  const oldRoot=roots[bar];
+  for(const e of events.filter(e=>e[7].formIndex===6&&e[7].bar%8===bar)){
+   if(['cyberlead','vstdefault'].includes(e[1]))continue;
+   e[7]={...e[7],chord:'A9(no3)'};
+   if(e[1]==='cyberpad')e[2]=[0,7,10,14];
+   if(e[1]==='cyberbass')e[2]-=oldRoot;
+   if(e[1]==='acidbass'){
+    e[7].notes=e[7].notes.map(note=>{const interval=note.pitch-oldRoot;return {...note,pitch:({13:14,15:10,1:2}[interval]??interval)};});
+    e[2]=e[7].notes[0].pitch;
+   }
+  }
+ }
+ // A** bar 5 lifts the Em(add9) pad an octave; bar 6 retains its original voicing.
+ for(const e of events)if(e[7].formIndex===6&&e[7].bar%8===4&&e[1]==='cyberpad')e[2]=e[2].map(p=>p+12);
  // A′: a seeded random order of the original four notes, in a fixed register.
  let arpSeed=28417,lastArpPitch=null;
  const nextArpPitch=()=>{
@@ -186,12 +255,44 @@ export function createUnderpassTheme(){
  fill(4,16,1.5,[[0,.66],[.5,.30],[.75,.45],[1,.58],[1.25,.80]],'c-2');
  fill(4,24,.75,[[0,.34],[.25,.50],[.5,.76]],'c-3');
  fill(4,32,1,Array.from({length:6},(_,n)=>[n/6,.40+n*.08]),'c-4');
+ // C bar 8, beats 2–3: six kick/low-tom hits precede the untouched beat-4 snare fill.
+ const kickTripletStart=(39*4+1)*beat,kickTripletEnd=kickTripletStart+2*beat;
+ for(let i=events.length-1;i>=0;i--){
+  const e=events[i];
+  if(e[7].formIndex===4&&e[6]===1701&&e[0]>=kickTripletStart&&e[0]<kickTripletEnd)events.splice(i,1);
+ }
+ for(let n=0;n<6;n++){
+  const at=kickTripletStart+n*2*beat/6,meta={section:'C',formIndex:4,bar:39,chord:'E pedal',kickSextuplet:true};
+  events.push([at,'kick',-2,.30*beat,[.88,.74,.80,.86,.78,.92][n],0,1701,meta]);
+  events.push([at,'tom',-3,.30*beat,[.64,.54,.59,.63,.57,.68][n],0,1701,{...meta,articulation:'low-tom'}]);
+ }
  // C**′: extra 4& backbeats; retain and accent bar 8's existing fill hit.
  for(const [bar,pos]of [[81,3.5],[85,3],[85,3.5],[87,3.5]]){
   const at=(bar*4+pos)*beat,existing=events.find(e=>e[1]==='snare'&&e[7].formIndex===10&&Math.abs(e[0]-at)<1e-8);
   if(existing){existing[4]=Math.max(existing[4],.76);existing[7]={...existing[7],endingAccent:true};}
   else events.push([at,'snare',-3,.22*beat,.76,0,1701,{section:'C**′',formIndex:10,bar,endingAccent:true}]);
  }
+ // Final two chromatic phrases: ghost-note pickups grow into a measured closing roll.
+ const closingDrum=(bar,pos,kind,velocity,pan=0)=>{
+  const at=(bar*4+pos)*beat,existing=events.find(e=>e[7].formIndex===10&&e[1]===kind&&Math.abs(e[0]-at)<1e-8);
+  if(existing){existing[4]=Math.max(existing[4],velocity);existing[7]={...existing[7],closingBuild:true};return;}
+  events.push([at,kind,kind==='kick'?-2:kind==='snare'?-3:0,Math.min(kind==='kick'?.30:.10,4-pos)*beat,velocity,pan,1701,{section:'C**′',formIndex:10,bar,closingBuild:true}]);
+ };
+ // Bar 5 introduces quiet replies; bar 6 answers with a longer sixteenth fill.
+ for(const [pos,v]of [[1.75,.25],[2.75,.32],[3.5,.45],[3.75,.59]])closingDrum(84,pos,'snare',v);
+ for(const pos of [.75,2.75])closingDrum(84,pos,'kick',.58);
+ for(const [pos,v]of [[2.5,.36],[2.75,.48],[3,.76],[3.25,.42],[3.5,.78],[3.75,.66]])closingDrum(85,pos,'snare',v);
+ for(const pos of [.75,1.75])closingDrum(85,pos,'kick',.62);
+ for(const pos of [2.625,2.875])closingDrum(85,pos,'hat',.25,.16);
+ // Bar 7 uses a 3+3+2 sixteenth accent pattern against the steady backbeat.
+ for(const [pos,v]of [[.5,.25],[1.75,.33],[2,.62],[2.75,.67],[3.5,.73]])closingDrum(86,pos,'snare',v);
+ for(const pos of [.75,2.5,3.75])closingDrum(86,pos,'kick',.65);
+ for(const pos of [3.125,3.375,3.625,3.875])closingDrum(86,pos,'hat',.28,-.16);
+ // Bar 8 accelerates 16ths into 32nds, then lands two clear final sixteenths.
+ for(const [pos,v]of [[.75,.27],[1.5,.34],[1.75,.42],[2,.64],[2.25,.42],[2.5,.58],[2.75,.48],[3,.80],[3.125,.43],[3.25,.58],[3.375,.48],[3.5,.82],[3.75,.88]])closingDrum(87,pos,'snare',v);
+ for(const pos of [.75,1.75,2.75])closingDrum(87,pos,'kick',.66);
+ // Thin hats under the final roll so its changing subdivisions stay readable.
+ for(let i=events.length-1;i>=0;i--){const e=events[i];if(e[7].formIndex===10&&e[7].bar===87&&e[1]==='hat'&&e[0]>=(87*4+2)*beat&&Math.round((e[0]/beat-87*4)*4)%2)events.splice(i,1);}
  const form=['A','B',"A′","B′",'C','D','A**','B*','A*′','B**′','C**′'],sections=form.map((name,index)=>({name,index,start:index*32*beat,duration:32*beat,bars:8,meter:'4/4'}));
  // Section trims offset density as layers accumulate, without flattening accents.
  const sectionMixDb=[0,-.8,-1,-1.5,-1.8,-1.2,-1.5,-1.5,-2,-2,-2];
