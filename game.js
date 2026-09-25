@@ -84,7 +84,9 @@ window.addEventListener('keydown',e=>{
  }
  if(match){if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault();if(e.code==='Escape'&&!e.repeat)pause();if(e.code==='KeyR'&&match.phase==='over')start();keys.add(e.code);if(!e.repeat)taps.add(e.code);}
 });
-window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>{keys.clear();taps.clear();if(match&&!paused&&match.phase!=='over')pause();});document.addEventListener('visibilitychange',()=>{if(document.hidden&&match&&!paused&&match.phase!=='over')pause();});
+// Screenshot overlays can take focus without hiding the game. Clear held input
+// on blur, but reserve automatic pause for an actually hidden tab/window.
+window.addEventListener('keyup',e=>keys.delete(e.code));window.addEventListener('blur',()=>{keys.clear();taps.clear();});document.addEventListener('visibilitychange',()=>{if(document.hidden&&match&&!paused&&match.phase!=='over')pause();});
 $$('[data-key]').forEach(b=>{b.onpointerdown=e=>{e.preventDefault();b.setPointerCapture(e.pointerId);keys.add(b.dataset.key);taps.add(b.dataset.key);};b.onpointerup=b.onpointercancel=b.onlostpointercapture=()=>keys.delete(b.dataset.key);});
 function text(str,x,y,size=16,color='#e4d9bf',align='left',font='Arial'){ctx.font=`${size}px ${font}`;ctx.fillStyle=color;ctx.textAlign=align;ctx.fillText(str,x,y);}
 function diamond(x,y,filled){ctx.beginPath();ctx.moveTo(x,y-5);ctx.lineTo(x+5,y);ctx.lineTo(x,y+5);ctx.lineTo(x-5,y);ctx.closePath();ctx.fillStyle=filled?'#dcbd77':'#3f4840';ctx.fill();ctx.strokeStyle='#af9b66';ctx.stroke();}
